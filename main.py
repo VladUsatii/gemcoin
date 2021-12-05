@@ -44,7 +44,7 @@ def AES(x) -> bytes:
 
 class Config(object):
 	def __init__(self):
-		self.IP = socket.gethostbyname(socket.gethostname())
+		#self.IP = socket.gethostbyname(socket.gethostname())
 		self.DEST_IP = '192.168.0.114'
 		self.UDP_PORT = 1513
 
@@ -52,7 +52,7 @@ class Config(object):
 
 		#self.NEAR_NODES = findNodes()
 
-	def findLocalNodes(self, MESSAGE):
+	def findLocalNodes(self):
 		# find all devices on network
 		proc = subprocess.Popen('arp -a', shell=True, stdout=subprocess.PIPE)
 		output = proc.communicate()[0]
@@ -89,19 +89,20 @@ config = Config()
 
 def main():
 	for x in range(0,10):
-		uni = random.uniform(0, 1)
+		uni = round(random.uniform(0, 1))
+		print(uni)
 		if uni == 0:
-			pongping()
+			config.pongping()
 			for x in range(0,5):
-				pingpong()
+				config.findLocalNodes()
 				time.sleep(1)
 		if uni == 1:
 			for x in range(0, 5):
-				pingpong()
+				config.findLocalNodes()
 				time.sleep(1)
-			pongping()
-	
-
+			config.pongping()
+	print('end')
+"""
 def unmain():
 	# disconnecting
 	#from psutil import process_iter
@@ -111,9 +112,7 @@ def unmain():
 	#		if conns.laddr.port == 1513:
 	#			proc.send_signal(SIGTERM)
 	pass
+"""
 
 if __name__ == "__main__":
-	try:
-		main()
-	#except ValueError:
-	#	unmain()
+	main()
