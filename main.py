@@ -51,7 +51,7 @@ class Config(object):
 		self.PACKET_MAX_BYTES = 1280
 
 		#self.NEAR_NODES = findNodes()
-
+	"""
 	def findLocalNodes(self):
 		# find all devices on network
 		proc = subprocess.Popen('arp -a', shell=True, stdout=subprocess.PIPE)
@@ -59,12 +59,13 @@ class Config(object):
 		pattern = re.compile(r'(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})')
 		ips = []
 
-		for line in fstring:
+		for line in output:
 			ips.append(pattern.search(line)[0])
 
 		# ping one by one
 		for device in ips:
 			self.pingpong('Hello device -> you are on the gemcoin network')
+	"""
 
 	def pingpong(self, MESSAGE): # outgoing
 		MESSAGE_ENC = str.encode(MESSAGE)
@@ -94,11 +95,13 @@ def main():
 		if uni == 0:
 			config.pongping()
 			for x in range(0,5):
-				config.findLocalNodes()
+				#config.findLocalNodes()
+				config.pingpong('gemcoin says hello')
 				time.sleep(1)
 		if uni == 1:
 			for x in range(0, 5):
-				config.findLocalNodes()
+				#config.findLocalNodes()
+				config.pingpong('gemcoin says hello')
 				time.sleep(1)
 			config.pongping()
 	print('end')
