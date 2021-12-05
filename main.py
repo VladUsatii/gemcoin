@@ -81,6 +81,7 @@ class Config(object):
 		# p = subprocess.Popen(('sudo', 'tcpdump', '-l', '-s0', '-ien0', 'port', '1513'), stdout=subprocess.PIPE)
 		for row in iter(p.stdout.readline, b''):
 			if 'gemcoin' in row.rstrip():
+				print("Connected to a computer on the local network")
 				pass
 		p.kill()
 
