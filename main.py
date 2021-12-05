@@ -44,7 +44,7 @@ def AES(x) -> bytes:
 
 class Config(object):
 	def __init__(self):
-		#self.IP = socket.gethostbyname(socket.gethostname())
+		self.IP = socket.gethostbyname(socket.gethostname())
 		self.DEST_IP = '192.168.0.114'
 		self.UDP_PORT = 1513
 
@@ -76,15 +76,28 @@ class Config(object):
 
 	def pongping(self):
 		# local network ien1
-		p = subprocess.Popen(('sudo', 'tcpdump', '-l', '-s0', '-ien1', 'port', '1513'), stdout=subprocess.PIPE)
+		s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+		s.bind((self.IP, self.UDP_PORT))
+		#p = subprocess.Popen(('sudo', 'tcpdump', '-l', '-s0', '-ien0', 'port', '1513'), stdout=subprocess.PIPE)
 
 		# remote network ien0
 		# p = subprocess.Popen(('sudo', 'tcpdump', '-l', '-s0', '-ien0', 'port', '1513'), stdout=subprocess.PIPE)
-		for row in iter(p.stdout.readline, b''):
-			if 'gemcoin' in row.rstrip():
-				print("Connected to a computer on the local network")
+		x = 0
+		while True:
+			if x < 25:
+				data, addr = s.recvfrom(1024)
+				time.sleep(0.25)
+				x += 1
+				print(data)
+			else:
 				pass
-		p.kill()
+
+		#for row in iter(p.stdout.readline, b''):
+		#	print(row)
+		#	if 'gemcoin' in str(row.rstrip()):
+		#		print("Connected to a computer on the local network")
+		#		pass
+		#p.kill()
 
 config = Config()
 
