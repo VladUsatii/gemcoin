@@ -88,6 +88,7 @@ class Config(object):
 				data, addr = s.recvfrom(1024)
 				if "gemcoin" in str(data):
 					print("acknowledged gemcoin machine")
+					time.sleep(6)
 					self.pingpong('hello gemcoin machine')
 				time.sleep(0.25)
 				x += 1
