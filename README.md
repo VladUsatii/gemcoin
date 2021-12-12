@@ -8,6 +8,15 @@ This is not a working project at the moment. When a full release is pushed, this
 
 A Turing-complete, general-purpose blockchain. Gas fees are dumb, so we switched to electric.
 
+| Current proposal				|
+| ----------------------------- |
+| Layer 1 mainnets and testnets |
+| Lightning Networks			|
+| Turing-completeness			|
+| General-purpose computation	|
+| Hidden gas fees (electric)	|
+| Layer 2 support				|
+
 ## How it works 🌐
 
 A general-purpose blockchain is a chain of digital signatures that avoid mediation of disputes and equate computational power over the network of peer-to-peer machines. This allows anyone to create decentralized applications for the peer-to-peer chain, accessible on the internet without centralized authority. In order to lower gas fees used for application computations, I devised a compute-based payment scheme.
@@ -55,6 +64,11 @@ To develop on the blockchain, use our CMD tool and port to a language of your ch
 Ported languages so far are listed here:
 
 *None*
+
+## TODO
+
+Optimize packet transmission
+	- 32 bytes for ping and 32 for pong
 
 ---
 
