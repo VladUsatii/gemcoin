@@ -1,0 +1,14 @@
+import subprocess
+
+class Opcodes(object):
+	def __init__(self):
+
+		# git commit for forks
+		self.gitid = subprocess.check_output(["git", "describe", "--all", "--long"]).strip()
+
+		# Error codes (256 byte malloc)
+		self.STOP		= [0x00, "Halted execution"]
+		self.VALUEERROR	= [0x01, "ValueError"]
+		self.KEYBOARD	= [0x02, "KeyboardInterrupt"]
+
+
