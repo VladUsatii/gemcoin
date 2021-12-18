@@ -42,12 +42,16 @@ class Config(object):
 		nm = nmap.PortScanner()
 		nm.scan(hosts=network, arguments='-sn')
 		hosts_list = random.shuffle([(x, nm[x]['status']['state']) for x in nm.all_hosts()])
-		print(f"Found {len(hosts_list)} devices on local network.")
-		for x in hosts_list:
-			host = checkPort(x)
-			if host == 0:
-				print("Found node on Gemcoin port.")
-				return x
+		if not hosts_list:
+			return oc.NOLOCALNODES()
+		else:
+			print(f"Found {len(hosts_list)} devices on local network.")
+			for x in hosts_list:
+				print("Checking node compatibility. . .")
+				host = checkPort(x)
+				if host == 0:
+					print("Found node on Gemcoin port.")
+					return x
 
 	def checkPort(self, port: int, destip: str):
 		s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)

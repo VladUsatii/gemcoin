@@ -10,5 +10,7 @@ class Opcodes(object):
 		self.STOP		= [0x00, "Halted execution"]
 		self.VALUEERROR	= [0x01, "ValueError"]
 		self.KEYBOARD	= [0x02, "KeyboardInterrupt"]
+		self.NOLOCALNODES = [0x03, "NoLocalNodes"]
+		self.NOPUBLICNODES = [0x04, "NoPublicNodes"]
 
 
