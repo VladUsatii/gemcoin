@@ -65,7 +65,7 @@ class Config(object):
 	def pingpong(self, MESSAGE, DEST_IP): # outgoing
 		MESSAGE_ENC = str.encode(MESSAGE)
 		s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-		s.sendto(MESSAGE_ENC, (DEST_IP, self.UDP_PORT))
+		s.sendto(MESSAGE_ENC, (str(DEST_IP), self.UDP_PORT))
 		s.close()
 		print(f"Delivered packet {MESSAGE}")
 
