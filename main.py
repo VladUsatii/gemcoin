@@ -67,7 +67,7 @@ class Config(object):
 		s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 		s.sendto(MESSAGE_ENC, (DEST_IP, self.UDP_PORT))
 		s.close()
-			print(f"Delivered packet {MESSAGE}")
+		print(f"Delivered packet {MESSAGE}")
 
 	def pongping(self):
 		# local -> ien1
@@ -107,7 +107,7 @@ class ProtocolDesign(object):
 
 		dest_ip = config.findLocalNodes()
 		if dest_ip == oc.NOLOCALNODES[0]:
-			dest_ip = config.findRemoteNodes()
+			dest_ip = config.IP
 
 		# both send their first keygen
 		exchange_one = (comm_gen**host_rand_num) % comm_mod
