@@ -114,8 +114,8 @@ if __name__ == "__main__":
 		s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 		main(s)
 	except ValueError:
-		s.shutdown(SHUT_RDWR)
+		s.close()
 		print("ValueError")
 	except KeyboardInterrupt:
-		s.shutdown(SHUT_RDWR)
+		s.close()
 		print("KeyboardInterrupt")
