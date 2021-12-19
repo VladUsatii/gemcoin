@@ -26,7 +26,6 @@ class Config(object):
 		self.COMMIT_AUTHOR = "Vlad Usatii"
 
 		self.IP = str(socket.gethostbyname(socket.gethostname()))
-		self.DEST_IP = '192.168.0.114'
 		self.UDP_PORT = 1513
 
 		self.PACKET_MAX_BYTES = 1280
@@ -50,7 +49,7 @@ class Config(object):
 			for x in hosts_list:
 				print("Checking node compatibility. . .")
 				host = checkPort(x)
-				if host == 0:
+				if host == 1:
 					print("Found node on Gemcoin port.")
 					return x
 
@@ -65,8 +64,9 @@ class Config(object):
 
 	def pingpong(self, MESSAGE, DEST_IP): # outgoing
 		MESSAGE_ENC = str.encode(MESSAGE)
-		with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
-			s.sendto(MESSAGE_ENC, (DEST_IP, self.UDP_PORT))
+		s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+		s.sendto(MESSAGE_ENC, (DEST_IP, self.UDP_PORT))
+		s.close()
 			print(f"Delivered packet {MESSAGE}")
 
 	def pongping(self):
@@ -106,7 +106,6 @@ class ProtocolDesign(object):
 		comm_mod = self.comm_mod
 
 		dest_ip = config.findLocalNodes()
-		#dest_ip = config.findLocalNodes()
 		if dest_ip == oc.NOLOCALNODES[0]:
 			dest_ip = config.findRemoteNodes()
 
@@ -125,32 +124,36 @@ class ProtocolDesign(object):
 		for x in range(0,10):
 			s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 			s.bind((config.IP, config.UDP_PORT))
-			s.setblocking(0)
 
 			while True:
 				# swaps between receiving from remote host and pinging remote host with keygen
+				for x in range(0, 5):
+					config.pingpong(exchange_one_concat, dest_ip)
+					time.sleep(0.25)
+					print(f"Pinged remote host: {dest_ip}")
 
 				for x in range(0, 2):
-					s.settimeout(5.0)
 					data, addr = s.recvfrom(1024)
 
-					# d-h round 1
-					if "gemcoin-key-round-one" in str(data):
-						print("Remote host found")
-						data = str(data)[21:]
-						split = data.split("_")
-						dest_exchange_one = split[0]
-						dest_rand_num = split[1]
+					try:
+						# d-h round 1
+						if "gemcoin-key-round-one" in str(data):
+							print("Remote host found")
+							data = str(data)[21:]
+							split = data.split("_")
+							dest_exchange_one = split[0]
+							dest_rand_num = split[1]
 
-						config.pingpong(exchange_one_concat, dest_ip)
+							config.pingpong(exchange_one_concat, dest_ip)
 
-						key = (dest_exchange_one**host_rand_num) % mod
+							key = (dest_exchange_one**host_rand_num) % mod
 
-						# returns key for symmetric AES
-						return [key, dest_ip]
-					else:
-						print("No peers found on time interval.")
-					s.settimeout(None)
+							# returns key for symmetric AES
+							return [key, dest_ip]
+						else:
+							print("No peers found on time interval.")
+					except:
+						pass
 
 				for x in range(0, 5):
 					config.pingpong(exchange_one_concat, dest_ip)
