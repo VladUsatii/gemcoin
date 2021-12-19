@@ -106,8 +106,6 @@ class ProtocolDesign(object):
 		comm_mod = self.comm_mod
 
 		dest_ip = config.findLocalNodes()
-		if dest_ip == oc.NOLOCALNODES[0]:
-			dest_ip = config.IP
 
 		# both send their first keygen
 		exchange_one = (comm_gen**host_rand_num) % comm_mod
@@ -122,9 +120,6 @@ class ProtocolDesign(object):
 		"""
 
 		for x in range(0,10):
-			s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-			s.bind((config.IP, config.UDP_PORT))
-
 			while True:
 				# swaps between receiving from remote host and pinging remote host with keygen
 				for x in range(0, 5):
@@ -133,6 +128,10 @@ class ProtocolDesign(object):
 					print(f"Pinged remote host: {dest_ip}")
 
 				for x in range(0, 2):
+					s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+					s.bind((config.IP, config.UDP_PORT))
+
+
 					data, addr = s.recvfrom(1024)
 
 					try:
