@@ -34,8 +34,9 @@ class Config(object):
 
 		#self.NEAR_NODES = findNodes()
 
-	def findRemoteNodes():
-		pass
+	def findRemoteNodes(self):
+		print("Finding remote nodes")
+		return None
 
 	def findLocalNodes(self):
 		network = self.IP + '/24'
@@ -43,7 +44,7 @@ class Config(object):
 		nm.scan(hosts=network, arguments='-sn')
 		hosts_list = random.shuffle([(x, nm[x]['status']['state']) for x in nm.all_hosts()])
 		if not hosts_list:
-			return oc.NOLOCALNODES()
+			return oc.NOLOCALNODES[0]
 		else:
 			print(f"Found {len(hosts_list)} devices on local network.")
 			for x in hosts_list:
@@ -105,6 +106,8 @@ class ProtocolDesign(object):
 		comm_mod = self.comm_mod
 
 		dest_ip = config.findLocalNodes()
+		if dest_ip == oc.NOLOCALNODES[0]:
+			dest_ip = config.findRemoteNodes()
 
 		# both send their first keygen
 		exchange_one = (comm_gen**host_rand_num) % comm_mod
