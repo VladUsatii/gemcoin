@@ -3,7 +3,7 @@ import random
 import sys, os
 import socket
 import nmap
-
+import time
 
 comm_gen = 9
 comm_mod = 37
@@ -16,13 +16,14 @@ def find_peers():
 	network = IP + '/24'
 	nm = nmap.PortScanner()
 	nm.scan(hosts=network, arguments='-sn')
-	hosts_list = [(x, nm[x]['status']['state']) for x in nm.all_hosts()]
+	hosts_list = nm.all_hosts()
 	for index, x in enumerate(hosts_list):
 		if IP == x:
 			del hosts_list[index]
 	return hosts_list
 
 peers = find_peers()
+print(peers)
 
 def shareChain(key):
 	print(key)
@@ -32,16 +33,15 @@ def closeConnection(s):
 	s.close()
 	sys.exit()
 
-def main():
+def main(s):
 	host_rand_num = int(random.random()*1000)
 	exchange_one = (comm_gen**host_rand_num) % comm_mod
 	# "gemcoin-key-round-one" || exchange_one || "_" || host_rand_num
 	SRC_DH_PUBKEY = "gemcoin-key-round-one" + str(exchange_one) + "_" + str(host_rand_num)
 
 	# init
-	s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-	a = random.uniform(0, 1)
+	a = round(random.uniform(0, 1))
 	print(a)
 
 	# listen first
@@ -67,7 +67,7 @@ def main():
 						time.sleep(1)
 
 						for x in range(0,5):
-							s.sendto(SRC_DH_PUBKEY, (addr[0], 1513)
+							s.sendto(SRC_DH_PUBKEY, (addr[0], 1513))
 							time.sleep(0.25)
 						key = (dest_exchange_one**host_rand_num) % comm_mod
 						shareChain(key)
@@ -102,13 +102,13 @@ def main():
 				except socket.timeout:
 					main()
 
-
-
-
-
-
-
-
-
-
-
+if __name__ == "__main__":
+	try:
+		s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+		main(s)
+	except ValueError:
+		s.shutdown(SHUT_RDWR)
+		print("ValueError")
+	except KeyboardInterrupt:
+		s.shutdown(SHUT_RDWR)
+		print("KeyboardInterrupt")
