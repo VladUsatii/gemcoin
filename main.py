@@ -25,7 +25,7 @@ class Config(object):
 		self.COMMIT_ID = oc.gitid
 		self.COMMIT_AUTHOR = "Vlad Usatii"
 
-		self.IP = socket.gethostbyname(socket.gethostname())
+		self.IP = str(socket.gethostbyname(socket.gethostname()))
 		self.DEST_IP = '192.168.0.114'
 		self.UDP_PORT = 1513
 
@@ -106,6 +106,7 @@ class ProtocolDesign(object):
 		comm_mod = self.comm_mod
 
 		dest_ip = config.findLocalNodes()
+		#dest_ip = config.findLocalNodes()
 		if dest_ip == oc.NOLOCALNODES[0]:
 			dest_ip = config.findRemoteNodes()
 
@@ -123,7 +124,7 @@ class ProtocolDesign(object):
 
 		for x in range(0,10):
 			s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-			s.bind((self.IP, self.UDP_PORT))
+			s.bind((config.IP, config.UDP_PORT))
 			s.setblocking(0)
 
 			while True:
