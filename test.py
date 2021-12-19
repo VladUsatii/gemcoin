@@ -58,6 +58,8 @@ def main(s):
 				s.settimeout(10)
 				try:
 					data, addr = conn.recvfrom(1024)
+					if type(data) == bytes:
+						data = data.decode()
 					if "gemcoin-key-round-one" in str(data):
 						data = str(data)[21:]
 						split = data.split("_")
@@ -67,7 +69,7 @@ def main(s):
 						time.sleep(1)
 
 						for x in range(0,5):
-							s.sendto(SRC_DH_PUBKEY, (addr[0], 1513))
+							s.sendto(SRC_DH_PUBKEY.encode(), (addr[0], 1513))
 							time.sleep(0.25)
 						key = (dest_exchange_one**host_rand_num) % comm_mod
 						shareChain(key)
@@ -78,7 +80,10 @@ def main(s):
 		print("Finding peers. . .")
 		for x in peers:
 			for y in range(0,5):
-				s.sendto(SRC_DH_PUBKEY, (x, 1513))
+				try:
+					s.sendto(SRC_DH_PUBKEY.encode(), (x, 1513))
+				except Exception:
+					continue
 		s.bind((IP, 1513))
 		s.listen(1)
 		conn, addr = s.accept()
@@ -90,6 +95,8 @@ def main(s):
 				s.settimeout(10)
 				try:
 					data, addr = conn.recvfrom(1024)
+					if type(data) == bytes:
+						data = data.decode()
 					if "gemcoin-key-round-one" in str(data):
 						data = str(data)[21:]
 						split = data.split("_")
