@@ -81,6 +81,7 @@ def main(s):
 		for x in peers:
 			for y in range(0,5):
 				try:
+					s.connect((x, 1513))
 					s.sendto(SRC_DH_PUBKEY.encode(), (x, 1513))
 				except Exception:
 					continue
