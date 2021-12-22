@@ -43,7 +43,7 @@ class Node(threading.Thread):
 		return self.nodes_inbound + self.nodes_outbound
 
 	def debug_print(self, message):
-		if self.debug: print("DEBUG (" + self.id + "): " + message)
+		if self.debug: print("INFO (" + self.id + "): " + message)
 
 	def dhke(self):
 		""" Generate a D-H key for symmetric encryption of packets """

@@ -9,11 +9,6 @@ from node import Node
 
 IP = socket.gethostbyname(socket.gethostname())
 
-# diffie-hellman constants
-DH_GEN = 9
-DH_MOD = 37
-
-
 # Network event handler
 class srcNode(Node):
 	def __init__(self, host, port, id=None, callback=None, max_connections=0):
@@ -43,27 +38,23 @@ class srcNode(Node):
 
 
 def localAddresses():
-	unacceptableIPs = ['239.255.255.247', '239.255.255.248',
-						'239.255.255.249', '239.255.255.250',
-						'239.255.255.251', '239.255.255.252',
-						'239.255.255.253', '239.255.255.254',
-						'239.255.255.255', '239.195.155.247',
-						'239.195.155.248', '239.195.155.249',
-						'239.195.155.250', '239.195.155.251',
-						'239.195.155.252', '239.195.155.253',
-						'239.195.155.254', '239.195.155.255']
-
 	c1, c2 = '(', ')'
 	IPs = []
 
 	usableIPs = []
 
 	for device in os.popen('arp -a'): IPs.append(device)
+
+	# separate arp table into only IP
 	for index, x in enumerate(IPs):
 		IPs[index] = x[x.find(c1)+1: x.find(c2)]
+
+	# check each IP for compatibility with gemcoin
 	for index, x in enumerate(IPs):
-		if x[-2:] != ".0" and x[-4:] != ".255" and x != IP and x not in unacceptableIPs:
-			usableIPs.append(x)
+		if x[-2:] != ".0" and x[-4:] != ".255" and x != IP:
+			if x[2] != ':' and x[1] != ':':
+				if int(x[0:3]) >= 169 and int(x[0:3]) < 198:
+					usableIPs.append(x)
 	return usableIPs
 
 """
@@ -100,3 +91,7 @@ def main():
 
 if __name__ == "__main__":
 	main()
+
+
+
+
