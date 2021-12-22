@@ -61,7 +61,8 @@ def localAddresses():
 Peer discovery packet:
 
 Concatenates privateKey, diffie-hellman number, and sessionKey; pings host with data, host decodes diffie-hellman number, uses it for key. AES is then allowed to be used.
-"""
+
+
 def discoveryPacket():
 	# privateKey | DHKE1_num | sessionKey
 	sessionKey = time.strftime("%m-%d-%Y-%H")
@@ -70,6 +71,7 @@ def discoveryPacket():
 
 	packet = privateKey + "_" + DHKE1_num + "_" + sessionKey
 	return packet
+"""
 
 def main():
 	IP = socket.gethostbyname(socket.gethostname())
@@ -79,8 +81,7 @@ def main():
 	IPs = localAddresses()
 
 	for IP in IPs:
-		try:
-			
+		try:			
 			src_node.connect_with_node(IP, 1513)
 		except:
 			continue

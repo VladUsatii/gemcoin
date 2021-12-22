@@ -49,9 +49,8 @@ class Node(threading.Thread):
 		""" Generate a D-H key for symmetric encryption of packets """
 		GEN, MOD = 9, 37
 		host_rand_num = int(random.random()*1000)
-		dhke = str((GEN**host_rand_num) % MOD) # dhke
 
-		return dhke.encode('utf-8')
+		return str((GEN**host_rand_num) % MOD) # dhke
 
 	def init_server(self):
 		print("Initialisation of the Node on port: " + str(self.port) + " on node (" + self.id + ")")
