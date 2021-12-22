@@ -25,7 +25,6 @@ class srcNode(Node):
         
 	def inbound_node_connected(self, node):
 		print("inbound_node_connected: (" + self.id + "): " + node.id)
-		return True
 
 	def inbound_node_disconnected(self, node):
 		print("(Inbound) Disconnected from peer.")
@@ -81,12 +80,8 @@ def main():
 
 	for IP in IPs:
 		try:
-			outbound = src_node.connect_with_node(IP, 1513)
-			time.sleep(1)
-
-			if outbound:
-				src_node.send_to_nodes({"message": discoveryPacket()})
-				print("Sent key.")
+			
+			src_node.connect_with_node(IP, 1513)
 		except:
 			continue
 

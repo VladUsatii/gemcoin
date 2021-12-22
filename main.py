@@ -54,7 +54,7 @@ class Config(object):
 		
 
 	def checkPort(self, port: int, destip: str):
-		s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+		s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 		location = (str(destip), port)
 		result = s.connect_ex(location)
 		if result == 0:

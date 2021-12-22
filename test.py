@@ -4,6 +4,7 @@ import sys, os
 import socket
 import nmap
 import time
+import asyncio
 
 comm_gen = 9
 comm_mod = 37
@@ -77,11 +78,12 @@ def main(s):
 				except socket.timeout:
 					main()
 	elif a == 1:
+		s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 		print("Finding peers. . .")
+		s.connect((IP, 1513))
 		for x in peers:
 			for y in range(0,5):
 				try:
-					s.connect((x, 1513))
 					s.sendto(SRC_DH_PUBKEY.encode(), (x, 1513))
 				except Exception:
 					continue
