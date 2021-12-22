@@ -43,6 +43,16 @@ class srcNode(Node):
 
 
 def localAddresses():
+	unacceptableIPs = ['239.255.255.247', '239.255.255.248',
+						'239.255.255.249', '239.255.255.250',
+						'239.255.255.251', '239.255.255.252',
+						'239.255.255.253', '239.255.255.254',
+						'239.255.255.255', '239.195.155.247',
+						'239.195.155.248', '239.195.155.249',
+						'239.195.155.250', '239.195.155.251',
+						'239.195.155.252', '239.195.155.253',
+						'239.195.155.254', '239.195.155.255']
+
 	c1, c2 = '(', ')'
 	IPs = []
 
@@ -52,9 +62,8 @@ def localAddresses():
 	for index, x in enumerate(IPs):
 		IPs[index] = x[x.find(c1)+1: x.find(c2)]
 	for index, x in enumerate(IPs):
-		if x[-2:] != ".0" and x[-4:] != ".255" and x != IP:
+		if x[-2:] != ".0" and x[-4:] != ".255" and x != IP and x not in unacceptableIPs:
 			usableIPs.append(x)
-
 	return usableIPs
 
 """
