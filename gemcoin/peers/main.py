@@ -23,7 +23,7 @@ def localAddresses():
 	for index, x in enumerate(IPs):
 		IPs[index] = x[x.find(c1)+1: x.find(c2)]
 	for index, x in enumerate(IPs):
-		if x[-2:] != ".0" and x[-4:] != ".255":
+		if x[-2:] != ".0" and x[-4:] != ".255" and x != IP:
 			usableIPs.append(x)
 
 	return usableIPs
@@ -52,9 +52,8 @@ def main():
 	for IP in IPs:
 		try:
 			src_node.connect_with_node(IP, 1513)
-
-			print("Connected to node.")
-			src_node.send_to_nodes({"DiscoveryPacket": discoveryPacket()})
+			time.sleep(1)
+			src_node.send_to_nodes({"message": discoveryPacket()})
 		except:
 			continue
 
@@ -62,7 +61,4 @@ def main():
 	print("Closing gemcoin.")
 
 if __name__ == "__main__":
-	try:
-		main()
-	except KeyboardInterrupt:
-		sys.exit()
+	main()
