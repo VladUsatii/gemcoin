@@ -36,7 +36,7 @@ class Node(threading.Thread):
         
 		self.max_connections = max_connections
 
-		self.debug = False
+		self.debug = True
 
 	@property
 	def all_nodes(self):

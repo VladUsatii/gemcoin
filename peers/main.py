@@ -80,9 +80,9 @@ def main():
 
 	IPs = localAddresses()
 
-	for IP in IPs:
+	for lIP in IPs:
 		try:			
-			src_node.connect_with_node(IP, 1513)
+			src_node.connect_with_node(lIP, 1513)
 		except:
 			continue
 
