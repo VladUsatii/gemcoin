@@ -98,7 +98,7 @@ class Node(threading.Thread):
 			return False
 		for node in self.nodes_outbound:
 			if node.host == host and node.port == port:
-				print("connect_with_node: Already connected with this node (" + node.id + ").")
+				print("connect_with_node: Already connected with this node (" + node.id[0] + ").")
 				return True
 
 		try:
@@ -122,7 +122,7 @@ class Node(threading.Thread):
 
 			for node in self.nodes_inbound:
 				if node.host == host and node.id == connected_node_id:
-					print("connect_with_node: This node (" + node.id + ") is already connected with us.")
+					print("connect_with_node: This node (" + node.id[0] + ") is already connected with us.")
 					sock.send("CLOSING: Already having a connection together".encode('utf-8'))
 					sock.close()
 					return True
@@ -184,7 +184,7 @@ class Node(threading.Thread):
 				self.debug_print("Total inbound connections:" + str(len(self.nodes_inbound)))
 				if self.max_connections == 0 or len(self.nodes_inbound) < self.max_connections:
 					connected_node_id = connection.recv(4096).decode('utf-8') # When a node is connected, it sends it id!
-					connection.send(self.id.encode('utf-8')) # Send my id to the connected node!
+					connection.send(self.id[0].encode('utf-8')) # Send my id to the connected node!
 
 					thread_client = self.create_new_connection(connection, connected_node_id, client_address[0], client_address[1])
 					thread_client.start()
@@ -222,17 +222,17 @@ class Node(threading.Thread):
 		print("Node stopped")
 
 	def outbound_node_connected(self, node):
-		self.debug_print("outbound_node_connected: " + node.id)
+		self.debug_print("outbound_node_connected: " + node.id[0])
 		if self.callback is not None:
 			self.callback("outbound_node_connected", self, node, {})
 
 	def inbound_node_connected(self, node):
-		self.debug_print("inbound_node_connected: " + node.id)
+		self.debug_print("inbound_node_connected: " + node.id[0])
 		if self.callback is not None:
 			self.callback("inbound_node_connected", self, node, {})
 
 	def node_disconnected(self, node):
-		self.debug_print("node_disconnected: " + node.id)
+		self.debug_print("node_disconnected: " + node.id[0])
 
 		if node in self.nodes_inbound:
 			del self.nodes_inbound[self.nodes_inbound.index(node)]
@@ -243,22 +243,22 @@ class Node(threading.Thread):
 			self.outbound_node_disconnected(node)
 
 	def inbound_node_disconnected(self, node):
-		self.debug_print("inbound_node_disconnected: " + node.id)
+		self.debug_print("inbound_node_disconnected: " + node.id[0])
 		if self.callback is not None:
 			self.callback("inbound_node_disconnected", self, node, {})
 
 	def outbound_node_disconnected(self, node):
-		self.debug_print("outbound_node_disconnected: " + node.id)
+		self.debug_print("outbound_node_disconnected: " + node.id[0])
 		if self.callback is not None:
 			self.callback("outbound_node_disconnected", self, node, {})
 
 	def node_message(self, node, data):
-		self.debug_print("node_message: " + node.id + ": " + str(data))
+		self.debug_print("node_message: " + node.id[0] + ": " + str(data))
 		if self.callback is not None:
 			self.callback("node_message", self, node, data)
 
 	def node_disconnect_with_outbound_node(self, node):
-		self.debug_print("node wants to disconnect with oher outbound node: " + node.id)
+		self.debug_print("node wants to disconnect with oher outbound node: " + node.id[0])
 		if self.callback is not None:
 			self.callback("node_disconnect_with_outbound_node", self, node, {})
 
@@ -274,4 +274,4 @@ class Node(threading.Thread):
 	def __str__(self):
 		return 'Node: {}:{}'.format(self.host, self.port)
 	def __repr__(self):
-		return '<Node {}:{} id: {}>'.format(self.host, self.port, self.id)
+		return '<Node {}:{} id: {}>'.format(self.host, self.port, self.id[0])
