@@ -7,6 +7,13 @@ import random
 
 from node import Node
 
+# import functions from parent
+p = os.path.abspath('../..')
+if p not in sys.path:
+	sys.path.append(p)
+
+from gemcoin.symmetric import AES
+
 IP = socket.gethostbyname(socket.gethostname())
 
 # Network event handler
