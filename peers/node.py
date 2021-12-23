@@ -43,17 +43,24 @@ class Node(threading.Thread):
 		return self.nodes_inbound + self.nodes_outbound
 
 	def debug_print(self, message):
-		if self.debug: print("INFO (" + self.id + "): " + message)
+		if self.debug: print("INFO (" + self.id[0] + "): " + message)
 
 	def dhke(self):
 		""" Generate a D-H key for symmetric encryption of packets """
 		GEN, MOD = 9, 37
 		host_rand_num = int(random.random()*1000)
 
-		return str((GEN**host_rand_num) % MOD) # dhke
+		# [src diffie hellman key, host randum number]
+		return [str((GEN**host_rand_num) % MOD), host_rand_num]
+
+	def dhkey(self, y, x):
+		# y = dest exchange
+		# x = host random number
+		MOD = 37
+		return (y**x) % MOD
 
 	def init_server(self):
-		print("Initialisation of the Node on port: " + str(self.port) + " on node (" + self.id + ")")
+		print("Initialisation of the Node on port: " + str(self.port) + " on node (" + self.id[0] + ")")
 		self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 		self.sock.bind((self.host, self.port))
 		self.sock.settimeout(10.0)
@@ -99,10 +106,13 @@ class Node(threading.Thread):
 			self.debug_print("connecting to %s port %s" % (host, port))
 			sock.connect((host, port))
 
-			sock.send(self.id.encode('utf-8')) # Send my id to the connected node!
-			connected_node_id = sock.recv(4096).decode('utf-8') # When a node is connected, it sends its id!
+			sock.send(self.id[0].encode('utf-8'))
+			connected_node_id = sock.recv(4096).decode('utf-8')
 
 			print(connected_node_id)
+
+			session_key = dhkey(connected_node_id, self.id[1])
+			print(f"\n\n\SESSION KEY FOR {host}: {session_key}\n\n")
 
 			if self.id == connected_node_id:
 				print("connect_with_node: You cannot connect with yourself?!")

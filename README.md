@@ -25,7 +25,7 @@ A general-purpose blockchain is a chain of digital signatures that avoid mediati
 
 Gas fees are too expensive and are the reason that many dApps cease to exist. Cutting these fees would create instability in network usage regulations and become a major handicap for the network. To enforce a strict fee environment, an electricity-based fee must be incorported into the mainnet.
 
-**Read the logic behind electric** [Fee Breakdown](https://github.com/VladUsatii/gemcoin/docs/FEE.md)
+**Read the logic behind electric** [Fee Breakdown](https://github.com/VladUsatii/gemcoin/blob/main/docs/FEE.md)
 
 ## Current Ports
 
@@ -67,8 +67,7 @@ Ported languages so far are listed here:
 
 ## TODO
 
-Optimize packet transmission
-	- 32 bytes for ping and 32 for pong
+Set up a block format and private keygen.
 
 ---
 
