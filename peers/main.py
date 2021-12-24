@@ -92,10 +92,11 @@ def main():
 
 	for lIP in IPs:
 		try:			
-			outboundsize = len(src_node.nodes_outbound)
+			inboundsize = len(src_node.nodes_inbound)
 			src_node.connect_with_node(lIP, 1513)
 
-			if len(src_node.nodes_outbound) > outboundsize:
+			if len(src_node.nodes_inbound) > inboundsize:
+				print(src_node.nodes_inbound)
 				# "dns" preset/seeds
 				if not os.path.isfile('localnodes.txt'):
 					with open('localnodes.txt', 'w') as fp:
@@ -105,6 +106,9 @@ def main():
 				nodeOutput = node(lIP)
 				if not nodeOutput:
 					break
+			else:
+				print(src_node.nodes_inbound)
+			
 		except:
 			continue
 

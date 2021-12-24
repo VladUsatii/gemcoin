@@ -111,7 +111,7 @@ class Node(threading.Thread):
 
 			print(connected_node_id)
 
-			session_key = dhkey(connected_node_id, self.id[1])
+			session_key = self.dhkey(connected_node_id, self.id[1])
 			print(f"\n\n\SESSION KEY FOR {host}: {session_key}\n\n")
 
 			if self.id == connected_node_id:
