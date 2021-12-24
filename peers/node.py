@@ -57,7 +57,7 @@ class Node(threading.Thread):
 		# y = dest exchange
 		# x = host random number
 		MOD = 37
-		return (y**x) % MOD
+		return str((int(y)**x) % MOD)
 
 	def init_server(self):
 		print("Initialisation of the Node on port: " + str(self.port) + " on node (" + self.id[0] + ")")
