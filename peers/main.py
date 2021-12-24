@@ -93,19 +93,31 @@ def main():
 	for lIP in IPs:
 		try:			
 			inboundsize = len(src_node.nodes_inbound)
+			outboundsize = len(src_node.nodes_outbound)
 			src_node.connect_with_node(lIP, 1513)
+			time.sleep(2)
 
-			if len(src_node.nodes_inbound) > inboundsize:
+			# check newest entry
+			if str(lIP) in src_node.nodes_inbound[-1] or str(lIP) in src_node.nodes_outbound[-1]:
+			#if len(src_node.nodes_inbound) > inboundsize:
 				print(src_node.nodes_inbound)
 				# "dns" preset/seeds
 				if not os.path.isfile('localnodes.txt'):
 					with open('localnodes.txt', 'w') as fp:
 						json.dump({lIP, 1513}, fp)
 
-				# after all of that, start node protocol
-				nodeOutput = node(lIP)
-				if not nodeOutput:
-					break
+				if str(lIP) in src_node.nodes_inbound[-1]:
+					# after all of that, start node protocol
+					src_node.connect_with_node(lIP)
+					src_node.send("hello")
+					nodeOutput = node(lIP)
+					if not nodeOutput:
+						break
+				if str(lIP) in src_node.nodes_outbound[-1]:
+					time.sleep(5)
+					nodeOutput = node(lIP)
+					if not nodeOutput:
+						break
 			else:
 				print(src_node.nodes_inbound)
 			
