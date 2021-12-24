@@ -4,8 +4,10 @@ import sys, os
 import time
 import asyncio
 import random
+import math
 
 from node import Node
+from math import *
 
 # import functions from parent
 p = os.path.abspath('../..')
@@ -79,8 +81,15 @@ def discoveryPacket():
 	packet = privateKey + "_" + DHKE1_num + "_" + sessionKey
 	return packet
 
-def node(lIP):
-	print("enter the protocol here")
+
+def round_minutes(t): # t is a datetime object
+	return t - datetime.timedelta( minutes = t.minute - round(t.minute, -1), seconds = t.second, microseconds = t.microsecond)
+
+# outbound node
+def verify_node(lIP, port):
+	print("Synced Peer.")
+	
+	
 	return False
 
 def main():
@@ -95,11 +104,23 @@ def main():
 			inboundsize = len(src_node.nodes_inbound)
 			outboundsize = len(src_node.nodes_outbound)
 			src_node.connect_with_node(lIP, 1513)
-			time.sleep(2)
 
+			if len(src_node.nodes_inbound) > inboundsize:
+				node = src_node.nodes_inbound[-1:].host
+				src_node.connect_with_node(node)
+				print("Connected with node")
+				
+			elif len(src_node.nodes_outbound) > outboundsize:
+				# sync connection
+				current_time = int(datetime.now().strftime("%S"))
+				next_10_seconds = roundup(current_time)
+				while int(datetime.now().strftime("%S")) != next_10_seconds:
+					pass
+				verify_node(lIP, 1513)
+
+			"""
 			# check newest entry
-			if str(lIP) in src_node.nodes_inbound[-1] or str(lIP) in src_node.nodes_outbound[-1]:
-			#if len(src_node.nodes_inbound) > inboundsize:
+			if len(src_node.nodes_inbound) > inboundsize or len(src_node.nodes_outbound) > outboundsize:
 				print(src_node.nodes_inbound)
 				# "dns" preset/seeds
 				if not os.path.isfile('localnodes.txt'):
@@ -120,10 +141,9 @@ def main():
 						break
 			else:
 				print(src_node.nodes_inbound)
-			
+			"""
 		except:
 			continue
-
 	src_node.stop()
 	print("Closing gemcoin.")
 
