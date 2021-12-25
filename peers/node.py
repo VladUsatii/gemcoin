@@ -3,12 +3,19 @@ import time
 import threading
 import random
 import hashlib
+import subprocess
 
 from nodeconnection import NodeConnection
 
 class Node(threading.Thread):
 	def __init__(self, host, port, id=None, callback=None, max_connections=0):
 		super(Node, self).__init__()
+
+		# session established, versions are sent and compared:
+		# if true, return block headers
+		# if false, disconnect (incompatible peer error) (false by default)
+		self.VERSION = self.git_revision_hash()
+		self.VERACK = False
 
 		# FLAGS
 		self.TERMINATE = threading.Event()
@@ -52,13 +59,16 @@ class Node(threading.Thread):
 		host_rand_num = int(random.random()*1000)
 
 		# [src diffie hellman key, host randum number]
-		return [str((GEN**host_rand_num) % MOD), host_rand_num]
+		return [str((GEN**host_rand_num) % MOD), host_rand_num, self.VERSION]
 
 	def dhkey(self, y, x):
 		# y = dest exchange
 		# x = host random number
 		MOD = 37
 		return str((int(y)**x) % MOD)
+
+	def git_revision_hash(self) -> str:
+		return subprocess.check_output(['git', 'rev-parse', 'HEAD']).decode('ascii').strip()
 
 	def init_server(self):
 		print("Initialisation of the Node on port: " + str(self.port) + " on node (" + self.id[0] + ")")

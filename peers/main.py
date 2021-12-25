@@ -26,11 +26,23 @@ class srcNode(Node):
 		print("gemcoin searching for peers. . .")
 
 	def outbound_node_connected(self, node):
+		try:
+			if node.id[2] != self.id[2]:
+				self.node_disconnect_with_outbound_node()
+		except IndexError:
+			print("Index doesn't exist on node. Node is on another chain/protocol.")
+			self.node_disconnect_with_outbound_node()
 		session_dhkey = self.dhkey(node.id[0], self.id[1])
 		print(f"\n\n{session_dhkey}\n\n")
 		print("Connected to potential peer.")
-        
+
 	def inbound_node_connected(self, node):
+		try:
+			if node.id[2] != self.id[2]:
+				self.node_disconnect_with_outbound_node()
+		except IndexError:
+			print("Index doesn't exist on node. Node is on another chain/protocol.")
+			
 		session_dhkey = self.dhkey(node.id[0], self.id[1])
 		print(f"\n\n{session_dhkey}\n\n")
 		print("inbound_node_connected: (" + self.id[0] + "): " + node.id[0])
@@ -81,6 +93,8 @@ def main():
 	IP = socket.gethostbyname(socket.gethostname())
 	src_node = srcNode(IP, 1513)
 	src_node.start()
+
+	print(f"VERSION			: {src_node.VERSION}")
 	IPs = localAddresses()
 
 	for lIP in IPs:
@@ -119,31 +133,6 @@ def main():
 				print("Waiting for synchronization. . .")
 				sys.stdout.write("\033[F")
 			verify_node(lIP, 1513)
-
-			"""
-			# check newest entry
-			if len(src_node.nodes_inbound) > inboundsize or len(src_node.nodes_outbound) > outboundsize:
-				print(src_node.nodes_inbound)
-				# "dns" preset/seeds
-				if not os.path.isfile('localnodes.txt'):
-					with open('localnodes.txt', 'w') as fp:
-						json.dump({lIP, 1513}, fp)
-
-				if str(lIP) in src_node.nodes_inbound[-1]:
-					# after all of that, start node protocol
-					src_node.connect_with_node(lIP)
-					src_node.send("hello")
-					nodeOutput = node(lIP)
-					if not nodeOutput:
-						break
-				if str(lIP) in src_node.nodes_outbound[-1]:
-					time.sleep(5)
-					nodeOutput = node(lIP)
-					if not nodeOutput:
-						break
-			else:
-				print(src_node.nodes_inbound)
-			"""
 	src_node.stop()
 	print("Closing gemcoin.")
 
