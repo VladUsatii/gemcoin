@@ -13,10 +13,8 @@ class NodeConnection(threading.Thread):
 		self.sock = sock
 		self.terminate_flag = threading.Event()
 
-		self.id = str(id) # Make sure the ID is a string
-
+		self.id = str(id)
 		self.EOT_CHAR = 0x04.to_bytes(1, 'big')
-
 		self.info = {}
 
 		self.sock.settimeout(10.0)
@@ -26,7 +24,7 @@ class NodeConnection(threading.Thread):
 	def send(self, data, encoding_type='utf-8'):
 		if isinstance(data, str):
 			try:
-				self.sock.sendall( data.encode(encoding_type) + self.EOT_CHAR )
+				self.sock.sendall(data.encode(encoding_type) + self.EOT_CHAR)
 			except Exception as e:
 				self.main_node.debug_print("nodeconnection send: Error sending data to node: " + str(e))
 				self.stop()
@@ -73,7 +71,7 @@ class NodeConnection(threading.Thread):
 			chunk = b''
 
 			try:
-				chunk = self.sock.recv(4096) 
+				chunk = self.sock.recv(4096)
 
 			except socket.timeout:
 				self.main_node.debug_print("NodeConnection: timeout")
@@ -86,13 +84,14 @@ class NodeConnection(threading.Thread):
 			if chunk != b'':
 				buffer += chunk
 				eot_pos = buffer.find(self.EOT_CHAR)
+				print(buffer)
 
 				while eot_pos > 0:
 					packet = buffer[:eot_pos]
 					buffer = buffer[eot_pos + 1:]
 
 					self.main_node.message_count_recv += 1
-					self.main_node.node_message( self, self.parse_packet(packet) )
+					self.main_node.node_message(self, self.parse_packet(packet))
 
 					eot_pos = buffer.find(self.EOT_CHAR)
 
@@ -100,7 +99,7 @@ class NodeConnection(threading.Thread):
 
 		self.sock.settimeout(None)
 		self.sock.close()
-		self.main_node.node_disconnected( self ) # Fixed issue #19: Send to main_node when a node is disconnected. We do not know whether it is inbounc or outbound.
+		self.main_node.node_disconnected(self)
 		self.main_node.debug_print("NodeConnection: Stopped")
 
 	def set_info(self, key, value):
