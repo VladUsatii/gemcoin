@@ -13,7 +13,8 @@ import random
 def priv_keygen(x):
 	# nonce: scalar # of transactions/contracts made from priv key
 	# balance: scalar # of gems owned by address
-	seed = x
+	random.seed(x)
+	
 
 def pub_keygen(x): pass
 

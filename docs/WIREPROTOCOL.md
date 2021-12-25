@@ -18,9 +18,49 @@ sha256(x) -> y:		returns sha256-keccak hash on the input x
 
 I've designated port 1513 as the mainnet, allowing all communications concerning finding local nodes and updating user state to be transacted through this port. Test ports are ignored for this representation (testnets). The port is opened upon running the mainnet.
 
-To scan the port for possible nodes on the network, pings are first run on the local network. If no devices are found listening on the port (no pong response), the ```findLocalNodes()``` function switches to a ```findRemoteNodes()``` function. Finding local nodes requires the use of nmap port scans. Finding remote nodes is a very difficult problem, on the other hand. Our solution involves DNS seeders. These expose a list of reliable nodes via a built-in DNS server on the network end-devices. This reduces electric fees significantly.
+To scan the port for possible nodes on the network, pings are first run on the local network. If no devices are found listening on the port (localNode iterator returns False), the ```findLocalNodes()``` function switches to a ```findRemoteNodes()``` function. Finding local nodes requires the use of iterating the arp table. Finding remote nodes is a very difficult problem, on the other hand. Our solution involves DNS seeders. These expose a list of reliable nodes via a built-in DNS server on the network end-devices. This reduces electric fees significantly.
 
-### Discovery Header Design
+### Key exchange
+
+A key exchange is necessary for the safe transmission and updateability of trusted nodes. To ensure a node is using the correct software, a Diffie-Hellman key exchange is necessary.
+
+#### ID Design
+
+Every node ID has (GIP 0) 3 indices:
+
+```
+[dhke(x): dest_dhke_one, x: host_rand_num, VERSION: hash]
+```
+
+Let's break the indices down:
+
+**dhke(x)**:
+
+```
+dhke(host_rand_num) generates unique message z1
+message is sent to dest
+dhke(host_rand_num) generates unique message z2
+message is sent to src
+```
+
+The initial ```dhke(x)``` is sent over a public channel. That is, it doesn't use AES because this is the node's initial interaction.
+
+```
+dhke(z1) = dhke(z2)
+dhke(z1 | z2) is the secret key
+```
+
+The key is used for AES encryption.
+
+**x**
+
+The host's random number is generated per session and is a ```random.random x 100```.
+
+**VERSION --> VERACK**
+
+A VERSION message is sent over the public channel. If the node can't match the VERSION to it's host VERSION, the connection is cut. VERACK is returned False. If the version acknowledgement is successful, the VERACK returns True and the connection moves to verification of blocks.
+
+### Request Header Design
 
 All discovery packets are symmetrically encrypted and authenticated in order to avoid static identification by firewalls.
 
@@ -31,56 +71,8 @@ masked-header	= aes(dhke(x), initvector, header)
 masked-key		= dest-name # dest-id[:16]
 ```
 
-#### Ping/Pong Design
-
-UDP shuffles a minimum of 63 bytes of a discovery header to local nodes or remote nodes after searching the local network. The ping response list is as follows:
+The header is defined as the following:
 
 ```
-Y(x) -> y:	YES response from input bytes x returns an IP address
-N(x) -> y:	NO response from input bytes x returns None type
-Z(x) -> y:	Z tag from input bytes x returns ErrorCode 0x01 (ValueError)
+unknown at the moment, in RD
 ```
-
-UDP shuffles back 32 bytes of an empty header to the source local node after a Y(None) connection is established. This verifies the existence of a gemcoin node.
-
-### Key exchange:
-
-A key exchange is necessary for the safe transmission and updateability of trusted nodes. To ensure a node is using the correct software, a Diffie-Hellman key exchange is necessary.
-
-#### Key design
-
-All ```dhke(x)``` functions are concatenated in the following layout before being sent:
-
-```
-"gemcoin-key-round-one" || exchange_one || "_" || host_rand_num
-```
-
-```"gemcoin-key-round-one"``` is a string representation of what key value you are sending. ```exchange_one``` is the output of the first key function, which is necessary to send to the destination. It will be used in round two for the creation of a unique key. ```"_"``` separates keys. ```host_rand_num``` is the random number input that was used for the first exchange output.
-
-The function ping pongs simultaneously:
-
-```
-dhke(src) generates unique message z1
-message is sent to dest
-dhke(dest) generates unique message z2
-message is sent to src
-```
-
-Both work with each other's public code:
-
-```
-dhke(z1) = dhke(z2)
-dhke(z1 | z2) is the secret key
-```
-
-The key is used for AES encryption.
-
-### Private Wiring
-
-A key in a session allows for the verification of a node.
-
-**Available in future update.**
-
-
-
-
