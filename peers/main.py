@@ -8,7 +8,7 @@ import math
 from datetime import datetime
 
 from node import Node
-from math import *
+from p2pmath import *
 
 # import functions from parent
 p = os.path.abspath('../..')
@@ -82,10 +82,6 @@ def discoveryPacket():
 	packet = privateKey + "_" + DHKE1_num + "_" + sessionKey
 	return packet
 
-
-def round_minutes(t): # t is a datetime object
-	return t - datetime.timedelta( minutes = t.minute - round(t.minute, -1), seconds = t.second, microseconds = t.microsecond)
-
 # outbound node
 def verify_node(lIP, port):
 	print("Synced Peer.")
@@ -104,8 +100,7 @@ def main():
 		outboundsize = len(src_node.nodes_outbound)
 
 		try:
-			x = src_node.connect_with_node(lIP, 1513)
-			print(x)
+			src_node.connect_with_node(lIP, 1513)
 		except:
 			continue
 
