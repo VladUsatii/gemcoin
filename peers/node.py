@@ -15,7 +15,6 @@ class Node(threading.Thread):
 
 		self.host = host
 		self.port = port
-
 		self.callback = callback
 
 		self.nodes_inbound = []  # Nodes that are connect with us N->(US)
@@ -26,6 +25,8 @@ class Node(threading.Thread):
 			self.id = self.dhke()
 		else:
 			self.id = str(id)
+
+		self.connected_node_ids = []
 
 		self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 		self.init_server()
@@ -110,6 +111,7 @@ class Node(threading.Thread):
 			connected_node_id = sock.recv(4096).decode('utf-8')
 
 			print(connected_node_id)
+			self.connected_node_ids.append(connected_node_id)
 
 			session_key = self.dhkey(connected_node_id, self.id[1])
 			print(f"\n\n\SESSION KEY FOR {host}: {session_key}\n\n")
@@ -133,11 +135,16 @@ class Node(threading.Thread):
 			self.nodes_outbound.append(thread_client)
 			self.outbound_node_connected(thread_client)
 
+			"""
 			if reconnect:
 				self.debug_print("connect_with_node: Reconnection check is enabled on node " + host + ":" + str(port))
 				self.reconnect_to_nodes.append({"host": host, "port": port, "tries": 0})
 				return True
-
+			"""
+			return thread_client
+		except ConnectionRefusedError:
+			self.debug_print("TcpServer.connect_with_node: Can't establish a communication with an idle node.")
+			return False
 		except Exception as e:
 			self.debug_print("TcpServer.connect_with_node: Could not connect with node. (" + str(e) + ")")
 			return False

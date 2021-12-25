@@ -59,6 +59,7 @@ class NodeConnection(threading.Thread):
     def parse_packet(self, packet):
         try:
             packet_decoded = packet.decode('utf-8')
+			print(f"Packet received from connected node: {packet_decoded}")
 
             try:
                 return json.loads(packet_decoded)

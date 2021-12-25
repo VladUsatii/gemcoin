@@ -5,6 +5,7 @@ import time
 import asyncio
 import random
 import math
+from datetime import datetime
 
 from node import Node
 from math import *
@@ -96,27 +97,33 @@ def main():
 	IP = socket.gethostbyname(socket.gethostname())
 	src_node = srcNode(IP, 1513)
 	src_node.start()
-
 	IPs = localAddresses()
 
 	for lIP in IPs:
-		try:			
-			inboundsize = len(src_node.nodes_inbound)
-			outboundsize = len(src_node.nodes_outbound)
-			src_node.connect_with_node(lIP, 1513)
+		inboundsize = len(src_node.nodes_inbound)
+		outboundsize = len(src_node.nodes_outbound)
 
-			if len(src_node.nodes_inbound) > inboundsize:
-				node = src_node.nodes_inbound[-1:].host
-				src_node.connect_with_node(node)
-				print("Connected with node")
+		try:
+			x = src_node.connect_with_node(lIP, 1513)
+			print(x)
+		except:
+			continue
+
+		if len(src_node.nodes_inbound) > inboundsize:
+			key = src_node.dhkey(int(src_node.connected_node_ids[-1]), int(src_node.id[1]))
+			print(f"\n\nInbound key: {key}\n\n")
+
+			node = src_node.nodes_inbound[-1:].host
+			src_node.connect_with_node(node)
+			print("Connected with node")
 				
-			elif len(src_node.nodes_outbound) > outboundsize:
-				# sync connection
-				current_time = int(datetime.now().strftime("%S"))
-				next_10_seconds = roundup(current_time)
-				while int(datetime.now().strftime("%S")) != next_10_seconds:
-					pass
-				verify_node(lIP, 1513)
+		if len(src_node.nodes_outbound) > outboundsize:
+			# sync connection
+			current_time = int(datetime.now().strftime("%S"))
+			next_10_seconds = roundup(current_time)
+			while int(datetime.now().strftime("%S")) != next_10_seconds:
+				pass
+			verify_node(lIP, 1513)
 
 			"""
 			# check newest entry
@@ -142,8 +149,6 @@ def main():
 			else:
 				print(src_node.nodes_inbound)
 			"""
-		except:
-			continue
 	src_node.stop()
 	print("Closing gemcoin.")
 
