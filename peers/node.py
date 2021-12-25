@@ -113,9 +113,6 @@ class Node(threading.Thread):
 			print(connected_node_id)
 			self.connected_node_ids.append(connected_node_id)
 
-			session_key = self.dhkey(connected_node_id, self.id[1])
-			print(f"\n\nSESSION KEY FOR {host}: {session_key}\n\n")
-
 			if self.id == connected_node_id:
 				print("connect_with_node: You cannot connect with yourself?!")
 				sock.send("CLOSING: Already having a connection together".encode('utf-8'))
@@ -252,6 +249,7 @@ class Node(threading.Thread):
 		while int(datetime.now().strftime("%S")) != next_10_seconds:
 			print("Waiting for synchronization. . .")
 			sys.stdout.write("\033[F")
+			self.verifyNode((node.host, node.port))
 
 		self.debug_print("inbound_node_connected: " + node.id[0])
 		if self.callback is not None:

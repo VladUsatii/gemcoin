@@ -26,9 +26,13 @@ class srcNode(Node):
 		print("gemcoin searching for peers. . .")
 
 	def outbound_node_connected(self, node):
+		session_dhkey = self.dhkey(node.id[0], self.id[1])
+		print(f"\n\n{session_dhkey}\n\n")
 		print("Connected to potential peer.")
         
 	def inbound_node_connected(self, node):
+		session_dhkey = self.dhkey(node.id[0], self.id[1])
+		print(f"\n\n{session_dhkey}\n\n")
 		print("inbound_node_connected: (" + self.id[0] + "): " + node.id[0])
 
 	def inbound_node_disconnected(self, node):
@@ -67,21 +71,6 @@ def localAddresses():
 					usableIPs.append(x)
 	return usableIPs
 
-"""
-Peer discovery packet:
-
-Concatenates privateKey, diffie-hellman number, and sessionKey; pings host with data, host decodes diffie-hellman number, uses it for key. AES is then allowed to be used.
-"""
-
-def discoveryPacket():
-	# privateKey | DHKE1_num | sessionKey
-	sessionKey = time.strftime("%m-%d-%Y-%H")
-	privateKey = "future-key"
-	DHKE1_num = (DH_GEN**(random.random()*1000)) % DH_MOD
-
-	packet = privateKey + "_" + DHKE1_num + "_" + sessionKey
-	return packet
-
 # outbound node
 def verify_node(lIP, port):
 	print("Synced Peer.")
@@ -104,11 +93,25 @@ def main():
 			continue
 
 		"""
+		OUTBOUND CONNECTION
 		You have connected to a node
+
+		If this is a new node, it will append the known node to a table of common nodes. Will attempt to connect on next init.
 
 		You are waiting for synchronization and an inbound connection. Then, you'll attempt verification of the node.
 		"""
 		if len(src_node.nodes_outbound) > outboundsize:
+			# if connection successful with outbound node, append node to list of known nodes to decrease electric fee
+			if not os.path.isfile('localnodes.txt'):
+				with open('localnodes.txt', 'w') as fp:
+					json.dump({"ip": lIP, "port": 1513}, fp)
+			elif os.path.isfile('localnodes.txt'):
+				with open('localnodes.txt') as f:
+					data = json.load(f)
+				data.update({"ip": lIP, "port": 1513})
+				with open('localnodes.txt', 'w') as f:
+					json.dump(data, f)
+
 			# sync connection
 			current_time = int(datetime.now().strftime("%S"))
 			next_10_seconds = roundup(current_time)
