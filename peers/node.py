@@ -114,7 +114,7 @@ class Node(threading.Thread):
 			self.connected_node_ids.append(connected_node_id)
 
 			session_key = self.dhkey(connected_node_id, self.id[1])
-			print(f"\n\n\SESSION KEY FOR {host}: {session_key}\n\n")
+			print(f"\n\nSESSION KEY FOR {host}: {session_key}\n\n")
 
 			if self.id == connected_node_id:
 				print("connect_with_node: You cannot connect with yourself?!")
@@ -233,7 +233,26 @@ class Node(threading.Thread):
 		if self.callback is not None:
 			self.callback("outbound_node_connected", self, node, {})
 
-	def inbound_node_connected(self, node):
+	def inbound_node_connected(self, node):	
+		"""
+		Node has connected to you
+
+		Synchronizes to the nearest ten seconds and attempts verification of the node.
+		"""
+		key = self.dhkey(int(self.connected_node_ids[-1]), int(self.id[1]))
+		print(f"\n\nInbound key: {key}\n\n")
+
+		node = (str(self.nodes_inbound[-1:].host), int(self.nodes_inbound[-1:].port))
+		self.connect_with_node(node)
+		print("Connected with node")
+
+		# sync connection 
+		current_time = int(datetime.now().strftime("%S"))
+		next_10_seconds = roundup(current_time)
+		while int(datetime.now().strftime("%S")) != next_10_seconds:
+			print("Waiting for synchronization. . .")
+			sys.stdout.write("\033[F")
+
 		self.debug_print("inbound_node_connected: " + node.id[0])
 		if self.callback is not None:
 			self.callback("inbound_node_connected", self, node, {})

@@ -104,27 +104,6 @@ def main():
 			continue
 
 		"""
-		Node has connected to you
-
-		Synchronizes to the nearest ten seconds and attempts verification of the node.
-		"""
-		if len(src_node.nodes_inbound) > inboundsize:
-			key = src_node.dhkey(int(src_node.connected_node_ids[-1]), int(src_node.id[1]))
-			print(f"\n\nInbound key: {key}\n\n")
-
-			node = (str(src_node.nodes_inbound[-1:].host), int(src_node.nodes_inbound[-1:].port))
-			src_node.connect_with_node(node)
-			print("Connected with node")
-
-			# sync connection 
-			current_time = int(datetime.now().strftime("%S"))
-			next_10_seconds = roundup(current_time)
-			while int(datetime.now().strftime("%S")) != next_10_seconds:
-				print("Waiting for synchronization. . .")
-				sys.stdout.write("\033[F")
-			verify_node(lIP, 1513)
-
-		"""
 		You have connected to a node
 
 		You are waiting for synchronization and an inbound connection. Then, you'll attempt verification of the node.
