@@ -22,7 +22,7 @@ p = os.path.abspath('../..')
 if p not in sys.path:
 	sys.path.append(p)
 
-from gemcoin.symmetric import AES
+from gemcoin.symmetric import AES_exchange
 
 IP = socket.gethostbyname(socket.gethostname())
 
@@ -33,11 +33,15 @@ Checks volumes and bin for block information. Returns configuration and verifica
 """
 class Validate(object):
 	def __init__(self, AES_key: int, src_node, dest_node):
+		# request messages are mapped directly by index to acknowledge messages
+		self.MESSAGES_REQUEST	= ["BLOCKGET", "BLOCKUPDATE"]
+		self.MESSAGES_ACK		= ["ACKDOWNLOAD", "ACKUPDATE"]
+
 		self.AES_key = AES_key # diffie-hellman key for AES -- avoid static identification by firewalls
 		self.src_node = src_node # src node class instance
 		self.dest_node = dest_node # dest node class instance
 
-		self.src_blockchain = init_blockchain() # returns list	
+		self.src_blockchain = self.init_blockchain() # returns list	
 
 	def init_blockchain(self):
 		# will attempt to start the apache nginx server and retrieve block information
@@ -49,7 +53,10 @@ class Validate(object):
 		return None
 
 	def initial_block_download(self):
-		return None
+		# send opcode over a secure channel
+		x = AES_exchange(self.AES_key).encrypt(self.MESSAGES_REQUEST[0])
+		print(x)
+		# src_node.send(x)
 
 # Network event handler
 class srcNode(Node):
@@ -223,18 +230,6 @@ def main():
 			src_node.connect_with_node(lIP, 1513)
 		except:
 			continue
-
-		if len(src_node.nodes_outbound) > outboundsize:
-			# if connection successful with outbound node, append node to list of known nodes to decrease electric fee
-			if not os.path.isfile('localnodes.txt'):
-				with open('localnodes.txt', 'w') as fp:
-					json.dump({"ip": lIP, "port": 1513}, fp)
-			elif os.path.isfile('localnodes.txt'):
-				with open('localnodes.txt') as f:
-					data = json.load(f)
-				data.update({"ip": lIP, "port": 1513})
-				with open('localnodes.txt', 'w') as f:
-					json.dump(data, f)
 	src_node.stop()
 	print("Closing gemcoin.")
 
