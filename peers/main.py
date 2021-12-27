@@ -7,6 +7,12 @@ import random
 import math
 from datetime import datetime
 
+# remote nodes
+import subprocess
+import io
+import json
+# import os
+
 from node import Node
 from p2pmath import *
 from p2perrors import *
@@ -27,7 +33,7 @@ Checks volumes and bin for block information. Returns configuration and verifica
 """
 class Validate(object):
 	def __init__(self, AES_key: int, src_node, dest_node):
-		self.AES_key = AES_key
+		self.AES_key = AES_key # diffie-hellman key for AES -- avoid static identification by firewalls
 		self.src_node = src_node # src node class instance
 		self.dest_node = dest_node # dest node class instance
 
@@ -40,6 +46,9 @@ class Validate(object):
 	def send_latest_block(self):
 		if self.src_blockchain == None:
 			print("(EmptyBlockError) Requesting initial block download from peer.")
+		return None
+
+	def initial_block_download(self):
 		return None
 
 # Network event handler
@@ -57,11 +66,11 @@ class srcNode(Node):
 		# catch outbound node connection errors
 		try:
 			if node.id[2] != self.id[2]:
-				self.node_disconnect_with_outbound_node()
+				self.node_disconnect_with_outbound_node(node)
 				NodeIncompatibilityError()
 		except IndexError:
 			NodeIncompatibilityError()
-			self.node_disconnect_with_outbound_node()
+			self.node_disconnect_with_outbound_node(node)
 
 		# create session AES key, creates a secure channel
 		session_dhkey = self.dhkey(node.id[0], self.id[1])
@@ -77,7 +86,8 @@ class srcNode(Node):
 			sys.stdout.write("\033[F")
 
 		# start validating and proofing chain
-		Validate(session_dhkey, self, node)
+		x = Validate(session_dhkey, self, node)
+		print(x)
 
 	"""
 	INBOUND NODE CONNECTED
@@ -87,11 +97,11 @@ class srcNode(Node):
 	def inbound_node_connected(self, node):
 		try:
 			if node.id[2] != self.id[2]:
-				self.node_disconnect_with_outbound_node()
+				self.node_disconnect_with_outbound_node(node)
 				NodeIncompatibilityError()
 		except IndexError:
 			NodeIncompatibilityError()
-			self.node_disconnect_with_outbound_node()
+			self.node_disconnect_with_outbound_node(node)
 
 		# create session AES key, creates a secure channel
 		session_dhkey = self.dhkey(node.id[0], self.id[1])
@@ -107,7 +117,8 @@ class srcNode(Node):
 			sys.stdout.write("\033[F")
 
 		# start validating and proofing chain
-		Validate(session_dhkey, self, node)
+		x = Validate(session_dhkey, self, node)
+		print(x)
 
 	def inbound_node_disconnected(self, node):
 		print("(InboundNodeError) Disconnected from peer.")
@@ -151,6 +162,47 @@ def localAddresses():
 	return usableIPs
 
 """
+REMOTE ADDRESSES
+
+Get a list of seeds with IP addresses to known hosts, get a list of boostrapped IPs, and get a list of static IPs from an externally connected node for the next validation of a block.
+"""
+# list of nodes saved to remoteNodes.txt
+class RemoteSearch(object):
+	def __init__(self, seedList: list):
+		self.seedList = seedList
+		self.nodeList = self.nodeList(self.seedList)
+
+		# manually entered unknown nodes -> first priority connection
+		self.newNodes = []
+
+		# known seeds -> second priority connection
+		self.remoteNodes = []
+
+	def nodeList(self, seedList: list):
+		if seedList is not None:
+			for seed in seedList:
+				nodes = subprocess.check_output(['dig', f'{seed}']).split('\n')
+				self.remoteNodes.append(nodes)
+
+	# sys argv [0] to connect a node that is unknown (in other words, bootstrap the network manually)
+	def boostrapRemoteConnection(self, IPs: list) -> list:
+		if IPs is not None:
+			for IP in IPs:
+				if IP not in self.newNodes and IP not in self.remoteNodes:
+					self.newNodes.append(IP)
+
+	# get the external node's IP list and add it to host's list
+	def externallyConnectedNodeIPList(self, ext_node_known_hosts: list):
+		if ext_node_known_hosts is not None:
+			for node in ext_node_known_hosts:
+				if node not in self.newNodes and node not in self.remoteNodes:
+					self.remoteNodes.append(node)
+
+# userProvidedSeeds = ["seed.gemcoiners.com"]
+userProvidedSeeds = None
+rs = RemoteSearch(userProvidedSeeds)
+
+"""
 MAIN
 
 Peer discovery starts here. Git hash is presented, local nodes are searched, and remote nodes are searched if no local nodes are found. If a connection can be established, callbacks are used (srcNode instance is preserved).
@@ -172,15 +224,6 @@ def main():
 		except:
 			continue
 
-		"""
-		OUTBOUND CONNECTION
-		You have connected to a node
-
-		If this is a new node, it will append the known node to a table of common nodes. Will attempt to connect on next init.
-
-		You are waiting for synchronization and an inbound connection. Then, you'll attempt verification of the node.
-		"""
-		"""
 		if len(src_node.nodes_outbound) > outboundsize:
 			# if connection successful with outbound node, append node to list of known nodes to decrease electric fee
 			if not os.path.isfile('localnodes.txt'):
@@ -192,7 +235,6 @@ def main():
 				data.update({"ip": lIP, "port": 1513})
 				with open('localnodes.txt', 'w') as f:
 					json.dump(data, f)
-		"""
 	src_node.stop()
 	print("Closing gemcoin.")
 
