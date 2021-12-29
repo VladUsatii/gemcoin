@@ -16,6 +16,7 @@ import json
 from node import Node
 from p2pmath import *
 from p2perrors import *
+from serialization import *
 
 # import functions from parent
 p = os.path.abspath('../..')
@@ -32,12 +33,12 @@ VALIDATE
 Checks volumes and bin for block information. Returns configuration and verification/validation based on state.
 """
 class Validate(object):
-	def __init__(self, AES_key: int, src_node, dest_node):
+	def __init__(self, update, src_node, dest_node):
 		# request messages are mapped directly by index to acknowledge messages
 		self.MESSAGES_REQUEST	= ["BLOCKGET", "BLOCKUPDATE"]
 		self.MESSAGES_ACK		= ["ACKDOWNLOAD", "ACKUPDATE"]
 
-		self.AES_key = AES_key # diffie-hellman key for AES -- avoid static identification by firewalls
+		self.AES_key = update.AES_key # diffie-hellman key for AES -- avoid static identification by firewalls
 		self.src_node = src_node # src node class instance
 		self.dest_node = dest_node # dest node class instance
 
@@ -47,9 +48,16 @@ class Validate(object):
 		# will attempt to start the apache nginx server and retrieve block information
 		return None
 
+	def request_block_update(self):
+		x = AES_exchange(self.AES_key).encrypt(self.MESSAGES_REQUEST[1])
+		print(x)
+		# src_node.send(x)
+
 	def send_latest_block(self):
 		if self.src_blockchain == None:
 			print("(EmptyBlockError) Requesting initial block download from peer.")
+		# elif
+		# return newest_header : if newest_header != node_newest_header, request n blocks
 		return None
 
 	def initial_block_download(self):
@@ -58,7 +66,66 @@ class Validate(object):
 		print(x)
 		# src_node.send(x)
 
-# Network event handler
+
+"""
+p2p
+
+Class responsible for keeping a connection alive. If not present, any two nodes will cease communication. A Checkup (0x00) message checks a node's compatibility every specified interval. A Disconnect (0x01) message warns an outbound node that is connected that it has 3 seconds to disconnect before it attempts to disconnect. 
+
+"""
+class p2p(object):
+	def __init__(self, AES_key: int, src_node, dest_node):
+		self.AES_key = AES_key
+		self.src_node = src_node
+		self.dest_node = dest_node
+
+	def Checkup(self):
+		# [message_type: 0x00, git_hash: hash, protocol: PythonicGemcoin, port: 1513, message_subtype: 0x00, pub_key: secp256k1(priv_key)]
+		headers = [0x00, src_node.id[2], "PythonicGemcoin", 1513, 0x00]
+
+		# importing private key --> public key
+		try:
+			headers.append(src_node.id[3])
+		except IndexError:
+			print("(NodeKeyError) Your node does not have a private key on file. Without a key, you can't perform on chain.\n\nSee github.com/VladUsatii/gemcoin.git for directions to creating a private key.")
+			self.Disconnect(0x02)
+
+		headers = [x.encode('utf-8') for x in headers]
+		payload = rlp_encode(headers)
+
+	def Disconnect(self, error):
+		# NOTE: All codes return non-blocking requests. A new peer will be introduced on Disconnect.
+		# 0x00 --> Manual disconnect
+		if error == 0x00:
+			print("(Disconnect) Peer manually disconnected.")
+			src_node.node_disconnect_with_outbound_node(dest_node)
+		# 0x01 --> Misbehaved node
+		elif error == 0x01:
+			print("(Disconnect) Peer is not honest.")
+			src_node.stop()
+		# 0x02 --> Useless node
+		elif error == 0x02:
+			src_node.stop()
+		"""
+		# 0x03 --> Incompatible peer
+		elif error == 0x03:
+		# 0x04 --> TCP crash
+		elif error == 0x04:
+		# 0x05 --> Man-in-the-middle attack introduced
+		elif error == 0x05:
+		# 0x06 --> Node connected to self
+		elif error == 0x06:
+		# 0x07 --> TCP timeout
+		elif error == 0x07:
+		# 0x07 --> layer 2 subprotocol request
+		elif error == 0x08:
+		"""
+
+"""
+srcNode
+
+Network event handler (callbacks)
+"""
 class srcNode(Node):
 	def __init__(self, host, port, id=None, callback=None, max_connections=0):
 		super(srcNode, self).__init__(host, port, id, callback, max_connections)
@@ -88,13 +155,14 @@ class srcNode(Node):
 		# sync connection
 		current_time = int(datetime.now().strftime("%S"))
 		next_10_seconds = roundup(current_time)
+
 		while int(datetime.now().strftime("%S")) != next_10_seconds:
 			print("Waiting for synchronization. . .")
 			sys.stdout.write("\033[F")
 
-		# start validating and proofing chain
-		x = Validate(session_dhkey, self, node)
-		print(x)
+		# p2p ping/pong class instance will be called in the validation process
+		update = p2p(session_dhkey, self, node)
+		Validate(update, src_node, dest_node)
 
 	"""
 	INBOUND NODE CONNECTED
@@ -119,13 +187,14 @@ class srcNode(Node):
 		# sync connection
 		current_time = int(datetime.now().strftime("%S"))
 		next_10_seconds = roundup(current_time)
+
 		while int(datetime.now().strftime("%S")) != next_10_seconds:
 			print("Waiting for synchronization. . .")
 			sys.stdout.write("\033[F")
 
-		# start validating and proofing chain
-		x = Validate(session_dhkey, self, node)
-		print(x)
+		# p2p ping/pong class instance will be called in the validation process
+		update = p2p(session_dhkey, self, node)
+		Validate(update, src_node, dest_node)
 
 	def inbound_node_disconnected(self, node):
 		print("(InboundNodeError) Disconnected from peer.")
