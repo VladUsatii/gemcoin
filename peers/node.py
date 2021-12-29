@@ -41,7 +41,7 @@ class Node(threading.Thread):
 		self.message_count_send = 0
 		self.message_count_recv = 0
 		self.message_count_rerr = 0
-        
+
 		self.max_connections = max_connections
 
 		self.debug = True

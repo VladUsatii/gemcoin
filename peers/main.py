@@ -45,7 +45,10 @@ class Validate(object):
 		self.src_blockchain = self.init_blockchain() # returns list	
 
 	def init_blockchain(self):
-		# will attempt to start the apache nginx server and retrieve block information
+		src_node.send(update.Checkup())
+		
+		# attempts to read from key-value store
+		
 		return None
 
 	def request_block_update(self):
@@ -92,6 +95,7 @@ class p2p(object):
 
 		headers = [x.encode('utf-8') for x in headers]
 		payload = rlp_encode(headers)
+		return payload
 
 	def Disconnect(self, error):
 		# NOTE: All codes return non-blocking requests. A new peer will be introduced on Disconnect.

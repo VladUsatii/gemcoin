@@ -7,6 +7,8 @@ This is not a working project at the moment. When a full release is pushed, this
 
 A Turing-complete, general-purpose blockchain. Gas fees are dumb, so we switched to electric.
 
+**In newbie terms** : A hive-mind computer, where every computer, as long as it does the work, can participate in making decisions for the network. Each computer in the hive-mind can make apps that every computer can now hold for free.
+
 | Current proposal				|
 | ----------------------------- |
 | Layer 1 mainnets and testnets |
@@ -35,6 +37,9 @@ Gas fees are too expensive and are the reason that many dApps cease to exist. Cu
 | 1515			| Testnet 2	|
 | 1516			| Testnet 3	|
 
+**Mainnet** --> A mainnet is the biggest hive-mind of computers.
+**Testnets** --> A testnet is a local test of the hive-mind for applications. The test-net clears up every day to allow experimentation without consequence.
+
 ## Config ⚙️
 
 To join the peer-to-peer server:
@@ -48,7 +53,7 @@ To join the peer-to-peer server:
 To listen on a gem network:
 
 ```bash
->>> gem [ net port number ]
+>>> gemcoin [ net port number ]
 Listening on [ net type (e.g. mainnet) ] . . .
 ```
 
