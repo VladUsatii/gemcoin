@@ -53,7 +53,7 @@ class Validate(object):
 		request = AES_exchange(self.AES_key).encrypt(self.MESSAGES_REQUEST[1])
 		serialized_request = rlp_encode(request)
 
-		self.src_node.send(request)
+		self.src_node.send_to_node(self.dest_node, serialized_request)
 
 	def send_latest_block(self):
 		if self.src_blockchain == None:
