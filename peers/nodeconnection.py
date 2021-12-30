@@ -13,13 +13,13 @@ class NodeConnection(threading.Thread):
 		self.sock = sock
 		self.terminate_flag = threading.Event()
 
-		self.id = str(id)
+		self.id = id
 		self.EOT_CHAR = 0x04.to_bytes(1, 'big')
 		self.info = {}
 
 		self.sock.settimeout(10.0)
 
-		self.main_node.debug_print("NodeConnection.send: Started with client (" + self.id + ") '" + self.host + ":" + str(self.port) + "'")
+		self.main_node.debug_print("NodeConnection.send: Started with client (" + self.id[0] + ") '" + self.host + ":" + str(self.port) + "'")
 
 	def send(self, data, encoding_type='utf-8'):
 		if isinstance(data, str):
@@ -109,6 +109,6 @@ class NodeConnection(threading.Thread):
 		return self.info[key]
 
 	def __str__(self):
-		return 'NodeConnection: {}:{} <-> {}:{} ({})'.format(self.main_node.host, self.main_node.port, self.host, self.port, self.id)
+		return 'NodeConnection: {}:{} <-> {}:{} ({})'.format(self.main_node.host, self.main_node.port, self.host, self.port, self.id[0])
 	def __repr__(self):
 		return '<NodeConnection: Node {}:{} <-> Connection {}:{}>'.format(self.main_node.host, self.main_node.port, self.host, self.port)

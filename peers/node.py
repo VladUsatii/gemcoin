@@ -206,8 +206,15 @@ class Node(threading.Thread):
 
 				self.debug_print("Total inbound connections:" + str(len(self.nodes_inbound)))
 				if self.max_connections == 0 or len(self.nodes_inbound) < self.max_connections:
-					connected_node_id = connection.recv(4096).decode('utf-8') # When a node is connected, it sends it id!
-					connection.send(self.id[0].encode('utf-8')) # Send my id to the connected node!
+
+					connected_node_id = connection.recv(4096) # When a node is connected, it sends it id!
+					connected_node_id = rlp_decode(connected_node_id)
+					connected_node_id = [x.decode('utf-8') for x in connected_node_id]
+
+					encoded_id = [x.encode('utf-8') for x in self.id]
+					payload = rlp_encode(encoded_id)
+					# connection.send(self.id.encode('utf-8')) # Send my id to the connected node!
+					connection.send(payload) # Send my id to the connected node!
 
 					thread_client = self.create_new_connection(connection, connected_node_id, client_address[0], client_address[1])
 					thread_client.start()
