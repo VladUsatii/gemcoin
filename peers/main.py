@@ -42,13 +42,11 @@ class Validate(object):
 		self.src_node = src_node # src node class instance
 		self.dest_node = dest_node # dest node class instance
 
-		self.src_blockchain = self.init_blockchain() # returns list	
+		self.src_blockchain = []
 
 	def init_blockchain(self):
 		src_node.send(update.Checkup())
-		
 		# attempts to read from key-value store
-		
 		return None
 
 	def request_block_update(self):
@@ -166,7 +164,7 @@ class srcNode(Node):
 
 		# p2p ping/pong class instance will be called in the validation process
 		update = p2p(session_dhkey, self, node)
-		Validate(update, src_node, dest_node)
+		Validate(update, self, dest_node)
 
 	"""
 	INBOUND NODE CONNECTED
@@ -198,7 +196,7 @@ class srcNode(Node):
 
 		# p2p ping/pong class instance will be called in the validation process
 		update = p2p(session_dhkey, self, node)
-		Validate(update, src_node, dest_node)
+		Validate(update, self, dest_node)
 
 	def inbound_node_disconnected(self, node):
 		print("(InboundNodeError) Disconnected from peer.")
@@ -207,8 +205,19 @@ class srcNode(Node):
 		print("(OutboundNodeError) Disconnected from peer.")
 
 	def node_message(self, node, data):
-		print("node_message (" + self.id[0] + ") from " + node.id[0] + ": " + str(data))
-        
+		session_dhkey = self.dhkey(node.id[0], self.id[1])
+		aes = AES_exchange(session_dhkey)
+		payload = aes.decrypt(data)
+
+		# deserialize into data type
+		message = rlp_decode(payload)
+
+		if isinstance(message, list):
+			for index, x in enumerate(message):
+				print("(IncomingNodeMessage) " + str(index) + ": " + str(x))
+		elif isinstance(message, str):
+			print("IncomingNodeMessage) " + str(message))
+
 	def node_disconnect_with_outbound_node(self, node):
 		print("node wants to disconnect with oher outbound node: (" + self.id[0] + "): " + node.id[0])
 
