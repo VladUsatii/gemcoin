@@ -307,13 +307,10 @@ def main():
 	src_node = srcNode(IP, 1513)
 	src_node.start()
 
-	print(f"VERSION			: {src_node.VERSION}")
+	print(f"VERSION			: {src_node.id[2]}")
 	IPs = localAddresses()
 
 	for lIP in IPs:
-		inboundsize = len(src_node.nodes_inbound)
-		outboundsize = len(src_node.nodes_outbound)
-
 		try:
 			src_node.connect_with_node(lIP, 1513)
 		except:

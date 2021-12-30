@@ -7,6 +7,8 @@ import subprocess
 
 from nodeconnection import NodeConnection
 
+from serialization import *
+
 class Node(threading.Thread):
 	def __init__(self, host, port, id=None, callback=None, max_connections=0):
 		super(Node, self).__init__()
@@ -58,14 +60,14 @@ class Node(threading.Thread):
 		GEN, MOD = 9, 37
 		host_rand_num = int(random.random()*1000)
 
-		# [src diffie hellman key, host randum number]
+		# [src diffie hellman key, host randum number, version number]
 		return [str((GEN**host_rand_num) % MOD), host_rand_num, self.VERSION]
 
 	def dhkey(self, y, x):
 		# y = dest exchange
 		# x = host random number
 		MOD = 37
-		return str((int(y)**x) % MOD)
+		return str((int(y)**int(x)) % MOD)
 
 	def git_revision_hash(self) -> str:
 		return subprocess.check_output(['git', 'rev-parse', 'HEAD']).decode('ascii').strip()
@@ -117,24 +119,25 @@ class Node(threading.Thread):
 			self.debug_print("connecting to %s port %s" % (host, port))
 			sock.connect((host, port))
 
-			# payload = rlp_encode(self.id)
-			# sock.send(payload.encode('utf-8'))
-			sock.send(self.id[0].encode('utf-8'))
+			payload = rlp_encode(self.id)
+			sock.send(payload.encode('utf-8'))
+			# sock.send(self.id[0].encode('utf-8'))
 
 			connected_node_id = sock.recv(4096).decode('utf-8')
-			# connected_node_id = rlp_decode(connected_node_id)
+			connected_node_id = rlp_decode(connected_node_id)
 
 			print(connected_node_id)
 			self.connected_node_ids.append(connected_node_id)
 
-			if self.id == connected_node_id:
+			if self.id[0:1] == connected_node_id[0:1]:
+			#if self.id == connected_node_id:
 				print("connect_with_node: You cannot connect with yourself?!")
 				sock.send("CLOSING: Already having a connection together".encode('utf-8'))
 				sock.close()
 				return True
 
 			for node in self.nodes_inbound:
-				if node.host == host and node.id == connected_node_id:
+				if node.host == host and node.id[0] == connected_node_id[0]:
 					print("connect_with_node: This node (" + node.id[0] + ") is already connected with us.")
 					sock.send("CLOSING: Already having a connection together".encode('utf-8'))
 					sock.close()
@@ -250,7 +253,7 @@ class Node(threading.Thread):
 
 		Synchronizes to the nearest ten seconds and attempts verification of the node.
 		"""
-		key = self.dhkey(int(self.connected_node_ids[-1]), int(self.id[1]))
+		key = self.dhkey(int(self.connected_node_ids[-1][0]), int(self.id[1]))
 		print(f"\n\nInbound key: {key}\n\n")
 
 		node = (str(self.nodes_inbound[-1:].host), int(self.nodes_inbound[-1:].port))
