@@ -50,9 +50,10 @@ class Validate(object):
 		return None
 
 	def request_block_update(self):
-		x = AES_exchange(self.AES_key).encrypt(self.MESSAGES_REQUEST[1])
-		print(x)
-		# src_node.send(x)
+		request = AES_exchange(self.AES_key).encrypt(self.MESSAGES_REQUEST[1])
+		serialized_request = rlp_encode(request)
+
+		src_node.send(request)
 
 	def send_latest_block(self):
 		if self.src_blockchain == None:
@@ -169,7 +170,9 @@ class srcNode(Node):
 
 		# p2p ping/pong class instance will be called in the validation process
 		update = p2p(session_dhkey, self, node)
-		Validate(update, self, node)
+		validation_instance = Validate(update, self, node)
+
+		validation_instance.request_block_update()
 
 	"""
 	INBOUND NODE CONNECTED
@@ -203,7 +206,9 @@ class srcNode(Node):
 
 		# p2p ping/pong class instance will be called in the validation process
 		update = p2p(session_dhkey, self, node)
-		Validate(update, self, node)
+		validation_instance = Validate(update, self, node)
+
+		validation_instance.request_block_update()
 
 	def inbound_node_disconnected(self, node):
 		print("(InboundNodeError) Disconnected from peer.")
@@ -214,10 +219,9 @@ class srcNode(Node):
 	def node_message(self, node, data):
 		session_dhkey = self.dhkey(node.id[0], self.id[1])
 		aes = AES_exchange(session_dhkey)
-		payload = aes.decrypt(data)
 
-		# deserialize into data type
-		message = rlp_decode(payload)
+		data = rlp_decode(data)
+		message = aes.decrypt(data)
 
 		if isinstance(message, list):
 			for index, x in enumerate(message):

@@ -60,7 +60,3 @@ def rlp_decode(input):
 			result.append(rlp_decode(input[:len_]))
 			input = input[len_:]
 	return result
-
-
-y = rlp_encode('fdsa'.encode('utf-8'))
-print(y)
