@@ -28,3 +28,6 @@ class AES_exchange(object):
 		iv = enc[:AES.block_size]
 		cipher = AES.new(self.key, AES.MODE_CFB, iv)
 		return unpad(base64.b64decode(cipher.decrypt(enc[AES.block_size:])).decode('utf8'))
+
+
+
