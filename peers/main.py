@@ -156,6 +156,7 @@ class srcNode(Node):
 			print(f"\n\n{session_dhkey}\n\n")
 		print("(OutboundNodeConnection) Connected to a gemcoin peer. Attempting time sync and block state discovery.")
 
+		"""
 		# sync connection
 		current_time = int(datetime.now().strftime("%S"))
 		next_10_seconds = roundup(current_time)
@@ -163,6 +164,7 @@ class srcNode(Node):
 		while int(datetime.now().strftime("%S")) != next_10_seconds:
 			print("Waiting for synchronization. . .")
 			sys.stdout.write("\033[F")
+		"""
 
 		# p2p ping/pong class instance will be called in the validation process
 		update = p2p(session_dhkey, self, node)
@@ -188,6 +190,7 @@ class srcNode(Node):
 			print(f"\n\n{session_dhkey}\n\n")
 		print("(InboundNodeConnection) Connected to a gemcoin peer. Attempting time sync and block state discovery.")
 
+		"""
 		# sync connection
 		current_time = int(datetime.now().strftime("%S"))
 		next_10_seconds = roundup(current_time)
@@ -195,6 +198,7 @@ class srcNode(Node):
 		while int(datetime.now().strftime("%S")) != next_10_seconds:
 			print("Waiting for synchronization. . .")
 			sys.stdout.write("\033[F")
+		"""
 
 		# p2p ping/pong class instance will be called in the validation process
 		update = p2p(session_dhkey, self, node)
