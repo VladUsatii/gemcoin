@@ -164,7 +164,7 @@ class srcNode(Node):
 
 		# p2p ping/pong class instance will be called in the validation process
 		update = p2p(session_dhkey, self, node)
-		Validate(update, self, dest_node)
+		Validate(update, self, node)
 
 	"""
 	INBOUND NODE CONNECTED
@@ -196,7 +196,7 @@ class srcNode(Node):
 
 		# p2p ping/pong class instance will be called in the validation process
 		update = p2p(session_dhkey, self, node)
-		Validate(update, self, dest_node)
+		Validate(update, self, node)
 
 	def inbound_node_disconnected(self, node):
 		print("(InboundNodeError) Disconnected from peer.")
