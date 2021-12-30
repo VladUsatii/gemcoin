@@ -117,11 +117,12 @@ class Node(threading.Thread):
 			self.debug_print("connecting to %s port %s" % (host, port))
 			sock.connect((host, port))
 
-			payload = rlp_encode(self.id)
-			sock.send(payload.encode('utf-8'))
+			# payload = rlp_encode(self.id)
+			# sock.send(payload.encode('utf-8'))
+			sock.send(self.id.encode('utf-8'))
 
 			connected_node_id = sock.recv(4096).decode('utf-8')
-			connected_node_id = rlp_decode(connected_node_id)
+			# connected_node_id = rlp_decode(connected_node_id)
 
 			print(connected_node_id)
 			self.connected_node_ids.append(connected_node_id)
