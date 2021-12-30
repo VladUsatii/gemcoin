@@ -44,30 +44,52 @@ class Validate(object):
 
 		self.src_blockchain = []
 
+
 	def init_blockchain(self):
-		src_node.send(update.Checkup())
+		# src_node.send(update.Checkup())
 		# attempts to read from key-value store
 		return None
 
+
+	def send_all_blocks(self):
+		"""
+		Destination Node needs src node to acknowledge and asks to prepare to receive all blocks (opcode 0x00 0x01)
+		"""
+		request = AES_exchange(self.AES_key).encrypt(self.MESSAGES_REQUEST[0])
+		serialized_request = rlp_encode(request)
+
+		self.src_node.send_to_node(self.dest_node, serialized_request)
+
+	def ack_send_all_blocks(self):
+		"""
+		Destination Node acknowledges src node and src node will prepare to receive all blocks (opcode 0x00 0x01)
+		"""
+		# ping host with Connect
+		request = AES_exchange(self.AES_key).encrypt(self.MESSAGES_ACK[0])
+		serialized_request = rlp_encode(request)
+
+		self.src_node.send_to_node(self.dest_node, serialized_request)
+
+
+
 	def request_block_update(self):
+		"""
+		Destination Node needs src node to acknowledge and asks to prepare to receive block update (opcode 0x00 0x01)
+		"""
 		request = AES_exchange(self.AES_key).encrypt(self.MESSAGES_REQUEST[1])
 		serialized_request = rlp_encode(request)
 
 		self.src_node.send_to_node(self.dest_node, serialized_request)
 
-	def send_latest_block(self):
-		if self.src_blockchain == None:
-			print("(EmptyBlockError) Requesting initial block download from peer.")
-		# elif
-		# return newest_header : if newest_header != node_newest_header, request n blocks
-		return None
+	def ack_block_update(self):
+		"""
+		Destination Node acknowledges src node and src node will prepare to receive updates (opcode 0x00 0x01)
+		"""
+		# ping host with Connect
+		request = AES_exchange(self.AES_key).encrypt(self.MESSAGES_ACK[1])
+		serialized_request = rlp_encode(request)
 
-	def initial_block_download(self):
-		# send opcode over a secure channel
-		x = AES_exchange(self.AES_key).encrypt(self.MESSAGES_REQUEST[0])
-		print(x)
-		# src_node.send(x)
-
+		self.src_node.send_to_node(self.dest_node, serialized_request)
 
 """
 p2p
@@ -81,9 +103,25 @@ class p2p(object):
 		self.src_node = src_node
 		self.dest_node = dest_node
 
-	def Checkup(self):
+	def Checkup(self, comm: int):
+		"""
+		sub-opcode	| meaning						|
+		----------------------------------------
+		0x00		| preserve connection			|
+		0x01		| large communication incoming	|
+		0x02		| level-2 subprotocol comm.		|
+		"""
 		# [message_type: 0x00, git_hash: hash, protocol: PythonicGemcoin, port: 1513, message_subtype: 0x00, pub_key: secp256k1(priv_key)]
-		headers = [0x00, src_node.id[2], "PythonicGemcoin", 1513, 0x00]
+
+		# establish headers
+		headers = [0x00, self.src_node.id[2], "PythonicGemcoin", 1513]
+
+		# append subprotocol based on input
+		if comm in [0x00, 0x01, 0x02]:
+			headers.append(comm)
+		else:
+			# default is preservation of connection
+			headers.append(0x00)
 
 		""" COMMENTED OUT FOR NOW
 		# importing private key --> public key
@@ -103,14 +141,14 @@ class p2p(object):
 		# 0x00 --> Manual disconnect
 		if error == 0x00:
 			print("(Disconnect) Peer manually disconnected.")
-			src_node.node_disconnect_with_outbound_node(self.dest_node)
+			self.src_node.node_disconnect_with_outbound_node(self.dest_node)
 		# 0x01 --> Misbehaved node
 		elif error == 0x01:
 			print("(Disconnect) Peer is not honest.")
-			src_node.stop()
+			self.src_node.stop()
 		# 0x02 --> Useless node
 		elif error == 0x02:
-			src_node.stop()
+			self.src_node.stop()
 		"""
 		# 0x03 --> Incompatible peer
 		elif error == 0x03:
@@ -158,21 +196,16 @@ class srcNode(Node):
 			print(f"\n\n{session_dhkey}\n\n")
 		print("(OutboundNodeConnection) Connected to a gemcoin peer. Attempting time sync and block state discovery.")
 
-		"""
-		# sync connection
-		current_time = int(datetime.now().strftime("%S"))
-		next_10_seconds = roundup(current_time)
-
-		while int(datetime.now().strftime("%S")) != next_10_seconds:
-			print("Waiting for synchronization. . .")
-			sys.stdout.write("\033[F")
-		"""
-
 		# p2p ping/pong class instance will be called in the validation process
 		update = p2p(session_dhkey, self, node)
 		validation_instance = Validate(update, self, node)
 
-		validation_instance.request_block_update()
+		if validation_instance.src_blockchain == None:
+			validation_instance.send_all_blocks()
+			# link somewhere to wait (e.g. time sleep)
+		elif len(validation_instance.send_all_blocks()) > 0:
+			validation_instance.request_block_update()
+			# link somewhere to wait (e.g. time sleep)
 
 	"""
 	INBOUND NODE CONNECTED
@@ -194,21 +227,16 @@ class srcNode(Node):
 			print(f"\n\n{session_dhkey}\n\n")
 		print("(InboundNodeConnection) Connected to a gemcoin peer. Attempting time sync and block state discovery.")
 
-		"""
-		# sync connection
-		current_time = int(datetime.now().strftime("%S"))
-		next_10_seconds = roundup(current_time)
-
-		while int(datetime.now().strftime("%S")) != next_10_seconds:
-			print("Waiting for synchronization. . .")
-			sys.stdout.write("\033[F")
-		"""
-
 		# p2p ping/pong class instance will be called in the validation process
 		update = p2p(session_dhkey, self, node)
 		validation_instance = Validate(update, self, node)
 
-		validation_instance.request_block_update()
+		if validation_instance.src_blockchain == None:
+			validation_instance.send_all_blocks()
+			# link somewhere to wait (e.g. time sleep)
+		elif len(validation_instance.send_all_blocks()) > 0:
+			validation_instance.request_block_update()
+			# link somewhere to wait (e.g. time sleep)
 
 	def inbound_node_disconnected(self, node):
 		print("(InboundNodeError) Disconnected from peer.")
@@ -220,14 +248,43 @@ class srcNode(Node):
 		session_dhkey = self.dhkey(node.id[0], self.id[1])
 		aes = AES_exchange(session_dhkey)
 
-		data = rlp_decode(data)
-		message = aes.decrypt(data)
+		decoded_data = rlp_decode(data)
+		message = aes.decrypt(decoded_data)
 
+		# HEADERS are LISTS
 		if isinstance(message, list):
-			for index, x in enumerate(message):
-				print("(IncomingNodeMessage) " + str(index) + ": " + str(x))
+			if self.MASTER_DEBUG == True:
+				print(message)
+			if int(message[0]) == 0x00:
+				if int(message[-2]) == 0x00:
+					if self.MASTER_DEBUG == True:
+						print("(NodeConnectionPersistence) needs to acknwoledge node and keep connection active")
+					pass
+
+		# BLOCK OPERATIONS are STRINGS
 		elif isinstance(message, str):
-			print("IncomingNodeMessage) " + str(message))
+			print("(IncomingNodeMessage) " + str(message))
+			update = p2p(session_dhkey, self, node)
+			validation_instance = Validate(update, self, node)
+
+			# if message asks to get all blocks (BLOCKGET)
+			if message == validation_instance.MESSAGES_REQUEST[0]:
+				validation_instance.ack_send_all_blocks()
+			# if message asks to get latest block (BLOCKUPDATE)
+			elif message == validation_instance.MESSAGES_REQUEST[1]:
+				validation_instance.ack_block_update()
+			else:
+				# untrusted node
+				print("(UntrustedNode) Node is not trustworthy.")
+
+			# if message is an acknowledgement, we need to handle the acknowledgement in a new thread
+			if message == validation_instance.MESSAGES_ACK[0]:
+				validation_instance.initial_block_download()
+			elif message == validation_instance.MESSAGES_ACK[1]:
+				validation_instance.askfor_latest_block()
+			else:
+				# untrusted node
+				print("(UntrustedNode) Node is not trustworthy.")
 
 	def node_disconnect_with_outbound_node(self, node):
 		print("node wants to disconnect with oher outbound node: (" + self.id[0] + "): " + node.id[0])
