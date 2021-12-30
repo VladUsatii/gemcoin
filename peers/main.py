@@ -141,6 +141,7 @@ class srcNode(Node):
 	Checks if node versions are the same. If not, a fork is theoretically created. If they are, a session key is returned and state/block discovery are synced and started.
 	"""
 	def outbound_node_connected(self, node):
+		print(f"{node.id}")
 		# catch outbound node connection errors
 		try:
 			if node.id[2] != self.id[2]:
