@@ -53,7 +53,7 @@ class Validate(object):
 		request = AES_exchange(self.AES_key).encrypt(self.MESSAGES_REQUEST[1])
 		serialized_request = rlp_encode(request)
 
-		src_node.send(request)
+		self.src_node.send(request)
 
 	def send_latest_block(self):
 		if self.src_blockchain == None:
@@ -103,7 +103,7 @@ class p2p(object):
 		# 0x00 --> Manual disconnect
 		if error == 0x00:
 			print("(Disconnect) Peer manually disconnected.")
-			src_node.node_disconnect_with_outbound_node(dest_node)
+			src_node.node_disconnect_with_outbound_node(self.dest_node)
 		# 0x01 --> Misbehaved node
 		elif error == 0x01:
 			print("(Disconnect) Peer is not honest.")
