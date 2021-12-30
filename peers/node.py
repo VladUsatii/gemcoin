@@ -61,7 +61,7 @@ class Node(threading.Thread):
 		host_rand_num = int(random.random()*1000)
 
 		# [src diffie hellman key, host randum number, version number]
-		return [str((GEN**host_rand_num) % MOD), host_rand_num, self.VERSION]
+		return [str((GEN**host_rand_num) % MOD), str(host_rand_num), self.VERSION]
 
 	def dhkey(self, y, x):
 		# y = dest exchange
@@ -119,12 +119,14 @@ class Node(threading.Thread):
 			self.debug_print("connecting to %s port %s" % (host, port))
 			sock.connect((host, port))
 
-			payload = rlp_encode(self.id.encode('utf-8'))
+			encoded_id = [x.encode('utf-8') for x in self.id]
+			payload = rlp_encode(encoded_id)
 			sock.send(payload)
 			# sock.send(self.id[0].encode('utf-8'))
 
 			connected_node_id = sock.recv(4096)
-			connected_node_id = rlp_decode(connected_node_id).decode('utf-8')
+			connected_node_id = rlp_decode(connected_node_id)
+			connected_node_id = [x.decode('utf-8') for x in connected_node_id]
 
 			print(connected_node_id)
 			self.connected_node_ids.append(connected_node_id)
