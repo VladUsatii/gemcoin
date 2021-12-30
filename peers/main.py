@@ -84,12 +84,14 @@ class p2p(object):
 		# [message_type: 0x00, git_hash: hash, protocol: PythonicGemcoin, port: 1513, message_subtype: 0x00, pub_key: secp256k1(priv_key)]
 		headers = [0x00, src_node.id[2], "PythonicGemcoin", 1513, 0x00]
 
+		""" COMMENTED OUT FOR NOW
 		# importing private key --> public key
 		try:
 			headers.append(src_node.id[3])
 		except IndexError:
 			print("(NodeKeyError) Your node does not have a private key on file. Without a key, you can't perform on chain.\n\nSee github.com/VladUsatii/gemcoin.git for directions to creating a private key.")
 			self.Disconnect(0x02)
+		"""
 
 		headers = [x.encode('utf-8') for x in headers]
 		payload = rlp_encode(headers)
