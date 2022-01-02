@@ -50,6 +50,12 @@ To join the peer-to-peer server:
 >>> bash setup.sh
 ```
 
+To make a private key and submit it to the chain:
+
+```bash
+>>> python3 add_key.py [ priv_key} # the key can be generated in the 'wallet' folder
+```
+
 To listen on a gem network:
 
 ```bash

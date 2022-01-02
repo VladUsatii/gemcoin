@@ -24,6 +24,7 @@ if p not in sys.path:
 	sys.path.append(p)
 
 from gemcoin.symmetric import AES_exchange
+from gemcoin.prompt.color import Color
 
 IP = socket.gethostbyname(socket.gethostname())
 
@@ -90,6 +91,16 @@ class Validate(object):
 		serialized_request = rlp_encode(request)
 
 		self.src_node.send_to_node(self.dest_node, serialized_request)
+
+	# FULL DOWNLOAD
+
+	"""
+	IBD has a misleading name
+
+	Its responsibility is to send block-by-block to destination node
+	"""
+	def initial_block_download(self):
+		pass
 
 """
 p2p
@@ -268,20 +279,18 @@ class srcNode(Node):
 			validation_instance = Validate(update, self, node)
 
 			# if message asks to get all blocks (BLOCKGET)
-			if message == validation_instance.MESSAGES_REQUEST[0]:
+			if str(message) == validation_instance.MESSAGES_REQUEST[0]:
 				validation_instance.ack_send_all_blocks()
 			# if message asks to get latest block (BLOCKUPDATE)
-			elif message == validation_instance.MESSAGES_REQUEST[1]:
+			elif str(message) == validation_instance.MESSAGES_REQUEST[1]:
 				validation_instance.ack_block_update()
-			else:
-				# untrusted node
-				print("(UntrustedNode) Node is not trustworthy.")
 
 			# if message is an acknowledgement, we need to handle the acknowledgement in a new thread
-			if message == validation_instance.MESSAGES_ACK[0]:
+			elif str(message) == validation_instance.MESSAGES_ACK[0]:
 				validation_instance.initial_block_download()
-			elif message == validation_instance.MESSAGES_ACK[1]:
+			elif str(message) == validation_instance.MESSAGES_ACK[1]:
 				validation_instance.askfor_latest_block()
+
 			else:
 				# untrusted node
 				print("(UntrustedNode) Node is not trustworthy.")
@@ -355,9 +364,15 @@ class RemoteSearch(object):
 				if node not in self.newNodes and node not in self.remoteNodes:
 					self.remoteNodes.append(node)
 
+
+
+
 # userProvidedSeeds = ["seed.gemcoiners.com"]
 userProvidedSeeds = None
 rs = RemoteSearch(userProvidedSeeds)
+
+
+
 
 """
 MAIN
@@ -369,7 +384,10 @@ def main():
 	src_node = srcNode(IP, 1513)
 	src_node.start()
 
-	print(f"VERSION			: {src_node.id[2]}")
+	print(f"{Color.YELLOW}VERSION{Color.END}: {src_node.id[2]}")
+
+	""" LOCAL SEARCH """
+
 	IPs = localAddresses()
 
 	for lIP in IPs:
@@ -377,6 +395,9 @@ def main():
 			src_node.connect_with_node(lIP, 1513)
 		except:
 			continue
+
+	""" REMOTE SEARCH """
+
 	src_node.stop()
 	print("Closing gemcoin.")
 
