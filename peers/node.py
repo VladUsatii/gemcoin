@@ -4,10 +4,19 @@ import threading
 import random
 import hashlib
 import subprocess
+import dbm
+from pathlib import Path
 
 from nodeconnection import NodeConnection
 
 from serialization import *
+
+# import functions from parent
+p = os.path.abspath('../..')
+if p not in sys.path:
+	sys.path.append(p)
+
+from gemcoin.prompt.color import Color
 
 class Node(threading.Thread):
 	def __init__(self, host, port, id=None, callback=None, max_connections=0):
@@ -53,15 +62,28 @@ class Node(threading.Thread):
 		return self.nodes_inbound + self.nodes_outbound
 
 	def debug_print(self, message):
-		if self.debug: print("INFO (" + self.id[0] + "): " + message)
+		if self.debug: print(f"{Color.GREEN}INFO{Color.END} (" + self.id[0] + "): " + message)
 
 	def dhke(self):
 		""" Generate a D-H key for symmetric encryption of packets """
 		GEN, MOD = 9, 37
 		host_rand_num = int(random.random()*1000)
 
-		# [src diffie hellman key, host randum number, version number]
-		return [str((GEN**host_rand_num) % MOD), str(host_rand_num), self.VERSION]
+		basic_id = [str((GEN**host_rand_num) % MOD), str(host_rand_num), self.VERSION]
+
+		# add private key if it exists
+		curdir = Path(__file__).resolve().parents[1]
+		if os.path.isfile(f'{curdir}/priv_key_store.db'):
+			with dbm.open(f'{curdir}/priv_key_store', 'r') as db:
+				# candidate key
+				candidate_key = db['priv_key']
+				# TODO: check if it is a sha-256 hash
+				basic_id.append(db['priv_key'])
+			print(basic_id)
+		else:
+			print(f"{Color.RED}PANIC{Color.END}: You don't have a private key.")
+
+		return basic_id
 
 	def dhkey(self, y, x):
 		# y = dest exchange

@@ -6,6 +6,7 @@ import asyncio
 import random
 import math
 from datetime import datetime
+import dbm
 
 # remote nodes
 import subprocess
@@ -207,6 +208,12 @@ class srcNode(Node):
 			print(f"\n\n{session_dhkey}\n\n")
 		print("(OutboundNodeConnection) Connected to a gemcoin peer. Attempting time sync and block state discovery.")
 
+		# save the REAL peer to the peercache
+		with dbm.open('peercache/localpeers', 'c') as db:
+			# map private ip to port number
+			db[node.host] = node.port
+			print("Trustworthy node has been added to the peercache.")
+
 		# p2p ping/pong class instance will be called in the validation process
 		update = p2p(session_dhkey, self, node)
 		validation_instance = Validate(update, self, node)
@@ -231,6 +238,12 @@ class srcNode(Node):
 		except IndexError:
 			NodeIncompatibilityError()
 			self.node_disconnect_with_outbound_node(node)
+
+		# save the REAL peer to the peercache
+		with dbm.open('peercache/localpeers', 'c') as db:
+			# map private ip to port number
+			db[node.host] = node.port
+			print("Trustworthy node has been added to the peercache.")
 
 		# create session AES key, creates a secure channel
 		session_dhkey = self.dhkey(node.id[0], self.id[1])
@@ -389,17 +402,31 @@ def main():
 	""" LOCAL SEARCH """
 
 	IPs = localAddresses()
-
 	for lIP in IPs:
 		try:
 			src_node.connect_with_node(lIP, 1513)
 		except:
 			continue
 
+	# scan cache
+	if os.path.exists('peercache/localpeers'):
+		# read from cache and try to connect to nodes
+		with dbm.open('peercache/localpeers', 'r') as db:
+			k = db.firstkey()
+			while k is not None:
+				print(f'{k} is a trusted node. Connecting. . .')
+				try:
+					src_node.connect_with_node(lIP, 1513)
+				except KeyboardInterrupt:
+					break
+				except:
+					continue
+				k = db.nextkey(k)
+
 	""" REMOTE SEARCH """
 
 	src_node.stop()
-	print("Closing gemcoin.")
+	print(f"{Color.RED}PANIC{Color.END}: Closing gemcoin.")
 
 if __name__ == "__main__":
 	main()
