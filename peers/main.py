@@ -240,7 +240,7 @@ class srcNode(Node):
 		# save the REAL peer to the peercache
 		with dbm.open('peercache/localpeers', 'c') as db:
 			# map private ip to port number
-			db[node.host] = node.port
+			db[str(node.host)] = str(node.port)
 			print("Trustworthy node has been added to the peercache.")
 
 		# create session AES key, creates a secure channel
