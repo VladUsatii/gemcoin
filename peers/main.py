@@ -135,14 +135,12 @@ class p2p(object):
 			# default is preservation of connection
 			headers.append(0x00)
 
-		""" COMMENTED OUT FOR NOW
 		# importing private key --> public key
 		try:
 			headers.append(src_node.id[3])
 		except IndexError:
 			print("(NodeKeyError) Your node does not have a private key on file. Without a key, you can't perform on chain.\n\nSee github.com/VladUsatii/gemcoin.git for directions to creating a private key.")
 			self.Disconnect(0x02)
-		"""
 
 		headers = [x.encode('utf-8') for x in headers]
 		payload = rlp_encode(headers)
@@ -335,8 +333,11 @@ def localAddresses():
 	# check each IP for compatibility with gemcoin
 	for index, x in enumerate(IPs):
 		if x[-2:] != ".0" and x[-4:] != ".255" and x != IP:
-			if x[2] != ':' and x[1] != ':':
-				if int(x[0:3]) >= 169 and int(x[0:3]) < 198:
+			if x[2] != '.' and x[1] != '.':
+				if int(x[0:3]) >= 169 and int(x[0:3]) < 198: # 198 was the original number, trying to slowly add nodes
+					usableIPs.append(x)
+			if x[2] == '.':
+				if int(x[0:1]) == 10:
 					usableIPs.append(x)
 	return usableIPs
 
@@ -399,14 +400,7 @@ def main():
 
 	print(f"{Color.YELLOW}VERSION{Color.END}: {src_node.id[2]}")
 
-	""" LOCAL SEARCH """
-
-	IPs = localAddresses()
-	for lIP in IPs:
-		try:
-			src_node.connect_with_node(lIP, 1513)
-		except:
-			continue
+	""" LOCAL SEED """
 
 	# scan cache
 	if os.path.exists('peercache/localpeers'):
@@ -416,14 +410,25 @@ def main():
 			while k is not None:
 				print(f'{k} is a trusted node. Connecting. . .')
 				try:
-					src_node.connect_with_node(lIP, 1513)
+					src_node.connect_with_node(str(k), 1513)
 				except KeyboardInterrupt:
 					break
 				except:
 					continue
 				k = db.nextkey(k)
 
+	""" LOCAL SEARCH """
+
+	IPs = localAddresses()
+	for lIP in IPs:
+		try:
+			src_node.connect_with_node(lIP, 1513)
+		except:
+			continue
+
 	""" REMOTE SEARCH """
+
+	# TBD
 
 	src_node.stop()
 	print(f"{Color.RED}PANIC{Color.END}: Closing gemcoin.")

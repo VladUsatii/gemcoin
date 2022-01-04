@@ -77,6 +77,7 @@ class Node(threading.Thread):
 			with dbm.open(f'{curdir}/priv_key_store', 'r') as db:
 				# candidate key
 				candidate_key = db['priv_key']
+				
 				# TODO: check if it is a sha-256 hash
 				basic_id.append(db['priv_key'])
 			print(basic_id)
