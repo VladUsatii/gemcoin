@@ -253,10 +253,11 @@ class srcNode(Node):
 		update = p2p(session_dhkey, self, node)
 		validation_instance = Validate(update, self, node)
 
-		if validation_instance.src_blockchain == None:
+		if validation_instance.src_blockchain == 0:
 			validation_instance.send_all_blocks()
 			# link somewhere to wait (e.g. time sleep)
-		elif len(validation_instance.send_all_blocks()) > 0:
+
+		if len(validation_instance.send_all_blocks()) > 0:
 			validation_instance.request_block_update()
 			# link somewhere to wait (e.g. time sleep)
 
