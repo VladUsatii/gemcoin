@@ -209,14 +209,20 @@ class srcNode(Node):
 		# save the REAL peer to the peercache
 		with dbm.open('peercache/localpeers', 'c') as db:
 			# map private ip to port number
-			db[node.host] = node.port
+			db[node.host] = str(node.port)
 			print("Trustworthy node has been added to the peercache.")
+
+		# create session AES key, creates a secure channel
+		session_dhkey = self.dhkey(node.id[0], self.id[1])
+		if self.MASTER_DEBUG == True:
+			print(f"\n\n{session_dhkey}\n\n")
+		print("(InboundNodeConnection) Connected to a gemcoin peer. Attempting time sync and block state discovery.")
 
 		# p2p ping/pong class instance will be called in the validation process
 		update = p2p(session_dhkey, self, node)
 		validation_instance = Validate(update, self, node)
 
-		if validation_instance.src_blockchain == None:
+		if validation_instance.src_blockchain == 0 or validation_instance.src_blockchain == None:
 			validation_instance.send_all_blocks()
 			# link somewhere to wait (e.g. time sleep)
 		elif len(validation_instance.send_all_blocks()) > 0:
@@ -240,7 +246,7 @@ class srcNode(Node):
 		# save the REAL peer to the peercache
 		with dbm.open('peercache/localpeers', 'c') as db:
 			# map private ip to port number
-			db[str(node.host)] = str(node.port)
+			db[node.host] = str(node.port)
 			print("Trustworthy node has been added to the peercache.")
 
 		# create session AES key, creates a secure channel
@@ -253,11 +259,10 @@ class srcNode(Node):
 		update = p2p(session_dhkey, self, node)
 		validation_instance = Validate(update, self, node)
 
-		if validation_instance.src_blockchain == 0:
+		if validation_instance.src_blockchain == 0 or validation_instance.src_blockchain == None:
 			validation_instance.send_all_blocks()
 			# link somewhere to wait (e.g. time sleep)
-
-		if len(validation_instance.send_all_blocks()) > 0:
+		elif len(validation_instance.send_all_blocks()) > 0:
 			validation_instance.request_block_update()
 			# link somewhere to wait (e.g. time sleep)
 
