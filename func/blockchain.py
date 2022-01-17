@@ -14,7 +14,7 @@ block 1 validated by node e at time 15:13:17
 
 After 2 hours, validation period is finished.
 
-Mediam timestamp discovered from a centralized dig database for peer discovery
+Median timestamp discovered from a centralized dig database for peer discovery
 
 Every person has a different timestamp, but the timestamps are all following the same rules: timstamp_b > src_timestamp, and within 0 < n < 2 hours.
 
@@ -34,6 +34,7 @@ if p not in sys.path:
 	sys.path.append(p)
 
 from gemcoin.peers.serialization import *
+from gemcoin.peers.p2perrors import PrivateKeyError
 
 class GenesisBlock(object):
 	def __init__(self):
@@ -43,8 +44,6 @@ class GenesisBlock(object):
 
 		self.raw_timestamp = datetime.now()
 		self.timestamp = rlp_encode(self.raw_timestamp)
-
-		
 
 	def __repr__(self):
 		block_num_short = int(self.block_number)
@@ -72,6 +71,57 @@ class Block(object):
 
 		def __str__(self):
 			return "<Blockchain block %s @ time %s>" % (self.block_number, self.timestamp)
+
+
+"""
+HEADER represents a Gemcoin transaction header.
+"""
+class Header(object):
+	def __init__(self, node, dest_node, data_code):
+		# object instances
+		self.node      = node
+		self.dest_node = dest_node
+
+		self.timestamp = self.getCreationTime()
+
+		# header content
+		self.fromAddress          = self.get_pub_add(self.node)
+		self.toAddress            = dest_node.id[3]
+		self.data                 = data_code
+		self.trasactionNonce      = self.getTransactionNonce()
+		self.transactionSignature = self.makeTransactionSignature()
+
+	def encapsulate(self, VERACK: bool) -> tuple:
+		if VERACK == True:
+			# TODO: encapsulate all init stuff here
+			pass
+
+	def get_pub_add(self, node):
+		# returns public address if it exists
+		if len(node.id) != 3:
+			node.stop()
+			PublicKeyError()
+		else:
+			return node.id[3]
+
+	def getTransactionNonce(self):
+		# returns number of transactions sent by public key in blockchain
+		pass
+
+	def makeTransactionSignature(self):
+		# returns signature hash
+		pass
+
+	def getCreationTime(self):
+		# returns time in a hashed format
+		pass
+
+
+
+
+
+
+
 
 
 

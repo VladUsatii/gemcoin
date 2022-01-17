@@ -33,6 +33,12 @@ Short Hash				: {GRH_short}
 Long Hash				: {GRH_long}"""
 		print(output)
 
+	def do_account(self, arg):
+		# will get account details from makeaccount
+		return "Not finished yet."
+
+
+
 	def do_exit(self, arg):
 		sys.exit("Quitting gemcoin CLI.")
 

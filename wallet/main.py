@@ -11,6 +11,8 @@ kg.seed_input(x)
 
 priv_key = kg.generate_key()
 
+
+print(type(priv_key))
 print(f"Your private key:\n{priv_key}")
 
 # -----------------

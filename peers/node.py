@@ -17,6 +17,7 @@ if p not in sys.path:
 	sys.path.append(p)
 
 from gemcoin.prompt.color import Color
+from gemcoin.wallet.keygenerator import Wallet
 
 class Node(threading.Thread):
 	def __init__(self, host, port, id=None, callback=None, max_connections=0):
@@ -62,7 +63,11 @@ class Node(threading.Thread):
 		return self.nodes_inbound + self.nodes_outbound
 
 	def debug_print(self, message):
-		if self.debug: print(f"{Color.GREEN}INFO{Color.END} (" + self.id[0] + "): " + message)
+		if self.debug: print(f"{Color.GREEN}INFO:{Color.END} (" + self.id[0] + "): " + message)
+
+	def mapPublicKey(self, priv_key: str):
+		pub_key = Wallet.nonstatic_private_to_public(priv_key)
+		return pub_key
 
 	def dhke(self):
 		""" Generate a D-H key for symmetric encryption of packets """
@@ -77,10 +82,19 @@ class Node(threading.Thread):
 			with dbm.open(f'{curdir}/priv_key_store', 'r') as db:
 				# candidate key
 				candidate_key = db['priv_key']
-				
-				# TODO: check if it is a sha-256 hash
-				basic_id.append(db['priv_key'])
-			print(basic_id)
+				# check if valid hash
+				if len(candidate_key)*4 != 256:
+					print(f"{Color.RED}PANIC:{Color.END} You have a fake key. Use SHA256 to generate a secure private key. Import must be in WIF format.")
+					self.stop()
+				else:
+					# map private key to public key via node function
+					pub_key = self.mapPublicKey(db['priv_key'])
+					# append public key to ID
+					print(f"Public key: {pub_key}")
+					basic_id.append(pub_key)
+
+					print(f"{Color.GREEN}INFO:{Color.END} (DHKey) {basic_id[0]}                                    {Color.GREEN}INFO:{Color.END} (DHKeyOutput) {basic_id[1]}")
+					print(f"{Color.YELLOW}VERSION:{Color.END} {basic_id[2]}   {Color.GREEN}INFO:{Color.END} (PrivateKey) {basic_id[3]}")
 		else:
 			print(f"{Color.RED}PANIC{Color.END}: You don't have a private key.")
 

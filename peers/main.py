@@ -40,39 +40,48 @@ class Validate(object):
 		self.MESSAGES_REQUEST	= ["BLOCKGET", "BLOCKUPDATE"]
 		self.MESSAGES_ACK		= ["ACKDOWNLOAD", "ACKUPDATE"]
 
+		self.update = update
+
 		self.AES_key = update.AES_key # diffie-hellman key for AES -- avoid static identification by firewalls
 		self.src_node = src_node # src node class instance
 		self.dest_node = dest_node # dest node class instance
 
 		self.src_blockchain = []
 
-
-	def init_blockchain(self):
+	def init_blockchain(self, node_type: int):
 		# src_node.send(update.Checkup())
 		# attempts to read from key-value store
 		return None
-
 
 	def send_all_blocks(self):
 		"""
 		Destination Node needs src node to acknowledge and asks to prepare to receive all blocks (opcode 0x00 0x01)
 		"""
-		request = AES_exchange(self.AES_key).encrypt(self.MESSAGES_REQUEST[0])
-		serialized_request = rlp_encode(request)
+		# type of node (the lower the number, the more data required on disk)
+		node_type = [self.MESSAGES_REQUEST[0].encode('utf-8'), str(self.node_type).encode('utf-8')]
+		serialized_request = rlp_encode(node_type)
 
-		self.src_node.send_to_node(self.dest_node, serialized_request)
+		request = AES_exchange(self.AES_key).encrypt(serialized_request)
+		self.src_node.send_to_node(self.dest_node, request)
 
-	def ack_send_all_blocks(self):
+	def ack_send_all_blocks(self, node_type: int):
 		"""
-		Destination Node acknowledges src node and src node will prepare to receive all blocks (opcode 0x00 0x01)
+		Destination Node acknowledges src node and src node will prepare to receive all blocks (opcode 0x00 0x01) if it haves any at all
+
+		If it has no blocks as well, both will disconnect and find other nodes on the network
 		"""
-		# ping host with Connect
-		request = AES_exchange(self.AES_key).encrypt(self.MESSAGES_ACK[0])
-		serialized_request = rlp_encode(request)
+		
+		# ping host with Connect and init blockchain cache for steady delivery of blocks
+		status = self.init_blockchain(node_type)
 
-		self.src_node.send_to_node(self.dest_node, serialized_request)
-
-
+		# if user doesn't have any blocks
+		if status is None:
+			self.update.Disconnect(0x02) # useless node
+		if status:
+			request = self.MESSAGES_ACK[0]
+			serialized_request = rlp_encode(request)
+			request = AES_exchange(self.AES_key).encrypt(self.MESSAGES_ACK[0])
+			self.src_node.send_to_node(self.dest_node, serialized_request)
 
 	def request_block_update(self):
 		"""
@@ -92,16 +101,6 @@ class Validate(object):
 		serialized_request = rlp_encode(request)
 
 		self.src_node.send_to_node(self.dest_node, serialized_request)
-
-	# FULL DOWNLOAD
-
-	"""
-	IBD has a misleading name
-
-	Its responsibility is to send block-by-block to destination node
-	"""
-	def initial_block_download(self):
-		pass
 
 """
 p2p
@@ -144,35 +143,24 @@ class p2p(object):
 
 		headers = [x.encode('utf-8') for x in headers]
 		payload = rlp_encode(headers)
+
+		aes = AES_exchange(self.AES_key)
+		encrypted_payload = aes.encrypt(payload)
+
 		return payload
 
 	def Disconnect(self, error):
 		# NOTE: All codes return non-blocking requests. A new peer will be introduced on Disconnect.
-		# 0x00 --> Manual disconnect
-		if error == 0x00:
-			print("(Disconnect) Peer manually disconnected.")
-			self.src_node.node_disconnect_with_outbound_node(self.dest_node)
-		# 0x01 --> Misbehaved node
-		elif error == 0x01:
-			print("(Disconnect) Peer is not honest.")
-			self.src_node.stop()
-		# 0x02 --> Useless node
-		elif error == 0x02:
-			self.src_node.stop()
-		"""
-		# 0x03 --> Incompatible peer
-		elif error == 0x03:
-		# 0x04 --> TCP crash
-		elif error == 0x04:
-		# 0x05 --> Man-in-the-middle attack introduced
-		elif error == 0x05:
-		# 0x06 --> Node connected to self
-		elif error == 0x06:
-		# 0x07 --> TCP timeout
-		elif error == 0x07:
-		# 0x07 --> layer 2 subprotocol request
-		elif error == 0x08:
-		"""
+		# [message_type: 0x01, port, subprotocol]
+		headers = [0x01, 1513, error]
+
+		headers = [x.encode('utf-8') for x in headers]
+		payload = rlp_encode(headers)
+
+		aes = AES_exchange(self.AES_key)
+		encrypted_payload = aes.encrypt(payload)
+
+		return payload
 
 """
 srcNode
@@ -276,18 +264,31 @@ class srcNode(Node):
 		session_dhkey = self.dhkey(node.id[0], self.id[1])
 		aes = AES_exchange(session_dhkey)
 
-		decoded_data = rlp_decode(data)
-		message = aes.decrypt(decoded_data)
+		node_update_instance = p2p(session_dhkey, self, node)
+
+		# aes decrypt first
+		decrypted_data = aes.decrypt(data)
+		# de-serialization
+		message = rlp_decode(decrypted_data)
 
 		# HEADERS are LISTS
 		if isinstance(message, list):
 			if self.MASTER_DEBUG == True:
 				print(message)
-			if int(message[0]) == 0x00:
+
+			# Check if requesting full blocks
+			if message[0] == validation_instance.MESSAGES_REQUEST[0]:
+				# handle peer type correctly by index, peer 3 and 4 are highly discouraged for production use
+				validation_instance.ack_send_all_blocks(message[1])
+
+			# Checkup handling
+			elif int(message[0]) == 0x00:
 				if int(message[-2]) == 0x00:
-					if self.MASTER_DEBUG == True:
-						print("(NodeConnectionPersistence) needs to acknwoledge node and keep connection active")
-					pass
+					node_update_instance.Checkup(0x00)
+
+			# TODO: Finish this up
+			elif int(message[0]) == 0x01:
+				self.node_disconnect_with_outbound_node(node)
 
 		# BLOCK OPERATIONS are STRINGS
 		elif isinstance(message, str):
@@ -370,7 +371,7 @@ class RemoteSearch(object):
 				nodes = subprocess.check_output(['dig', f'{seed}']).split('\n')
 				self.remoteNodes.append(nodes)
 
-	# sys argv [0] to connect a node that is unknown (in other words, bootstrap the network manually)
+	# TODO: PROPOSAL: sys argv [0] to connect a node that is unknown (in other words, bootstrap the network manually)
 	def boostrapRemoteConnection(self, IPs: list) -> list:
 		if IPs is not None:
 			for IP in IPs:
@@ -398,13 +399,14 @@ rs = RemoteSearch(userProvidedSeeds)
 MAIN
 
 Peer discovery starts here. Git hash is presented, local nodes are searched, and remote nodes are searched if no local nodes are found. If a connection can be established, callbacks are used (srcNode instance is preserved).
+
+TODO: Add the sys argv to the docs and create a client
+
 """
 def main():
 	IP = socket.gethostbyname(socket.gethostname())
 	src_node = srcNode(IP, 1513)
 	src_node.start()
-
-	print(f"{Color.YELLOW}VERSION{Color.END}: {src_node.id[2]}")
 
 	""" LOCAL SEED """
 
@@ -435,7 +437,6 @@ def main():
 	""" REMOTE SEARCH """
 
 	# TBD
-
 	src_node.stop()
 	print(f"{Color.RED}PANIC{Color.END}: Closing gemcoin.")
 

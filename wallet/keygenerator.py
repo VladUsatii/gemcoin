@@ -86,6 +86,15 @@ class Wallet(object):
 				checksum += str(address_char)
 		return checksum
 
+	def nonstatic_private_to_public(private_key):
+		private_key_bytes = codecs.decode(private_key, 'hex')
+
+		key = ecdsa.SigningKey.from_string(private_key_bytes, curve=ecdsa.SECP256k1).verifying_key
+		key_bytes = key.to_string()
+		public_key = codecs.encode(key_bytes, 'hex')
+
+		return public_key
+
 	@staticmethod
 	def __private_to_public(private_key):
 		private_key_bytes = codecs.decode(private_key, 'hex')
@@ -107,3 +116,5 @@ class Wallet(object):
 		wallet = '0x' + keccak_digest[-wallet_len:]
 
 		return wallet
+
+

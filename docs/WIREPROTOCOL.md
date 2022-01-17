@@ -52,9 +52,9 @@ dhke(z1 | z2) is the secret key
 
 The key is used for AES encryption.
 
-**x**
+**x**:
 
-The host's random number is generated per session and is a ```random.random x 100```.
+The host's random number is generated per session and is a ```int(random.random x 100)```.
 
 **VERSION --> VERACK**
 
