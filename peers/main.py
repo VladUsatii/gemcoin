@@ -206,9 +206,13 @@ class srcNode(Node):
 			print(f"\n\n{session_dhkey}\n\n")
 		print("(InboundNodeConnection) Connected to a gemcoin peer. Attempting time sync and block state discovery.")
 
-		# p2p ping/pong class instance will be called in the validation process
+		# class instance to continue or discontinue communications
 		update = p2p(session_dhkey, self, node)
+
+		# creation of an instance
 		validation_instance = Validate(update, self, node)
+
+
 
 		if validation_instance.src_blockchain == 0 or validation_instance.src_blockchain == None:
 			validation_instance.send_all_blocks()
@@ -230,6 +234,8 @@ class srcNode(Node):
 		except IndexError:
 			NodeIncompatibilityError()
 			self.node_disconnect_with_outbound_node(node)
+
+		self.verackSwitch(node, node.id[2])
 
 		# save the REAL peer to the peercache
 		with dbm.open('peercache/localpeers', 'c') as db:

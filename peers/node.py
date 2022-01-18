@@ -100,6 +100,26 @@ class Node(threading.Thread):
 
 		return basic_id
 
+	def verackSwitch(self, node, magic):
+		if magic == self.id[2]:
+			if self.VERACK == False:
+				self.VERACK = True
+			elif self.VERACK == True:
+				print("(MultisendError) User sent more than one version message. Disconnecting.")
+
+				# tell the destination node that they sent too many version messages
+				data = ["error", "user sent more than one version message"]
+				data = [x.encode('utf-8') for x in data]
+				payload = rlp_encode(data)
+				self.send_to_node(node, payload)
+
+				time.sleep(2) # 2 second safety wait period
+				# disconnect from faulty node
+				self.disconnect_with_node(node)
+		elif magic != self.id[2]:
+			print("(FaultyNode) Node has a fake revision hash.")
+			self.disconnect_with_node(node)
+
 	def dhkey(self, y, x):
 		# y = dest exchange
 		# x = host random number
@@ -206,6 +226,7 @@ class Node(threading.Thread):
 		if node in self.nodes_outbound:
 			self.node_disconnect_with_outbound_node(node)
 			node.stop()
+			self.VERACK = False
 		else:
 			self.debug_print("Node disconnect_with_node: cannot disconnect with a node with which we are not connected.")
 
