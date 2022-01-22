@@ -10,6 +10,7 @@ from pathlib import Path
 from nodeconnection import NodeConnection
 
 from serialization import *
+from packerfuncs import * # pack() and unpack() for data-link layer
 
 # import functions from parent
 p = os.path.abspath('../..')
@@ -17,6 +18,7 @@ if p not in sys.path:
 	sys.path.append(p)
 
 from gemcoin.prompt.color import Color
+from gemcoin.symmetric import AES_exchange
 from gemcoin.wallet.keygenerator import Wallet
 
 class Node(threading.Thread):
@@ -94,7 +96,7 @@ class Node(threading.Thread):
 					basic_id.append(pub_key)
 
 					print(f"{Color.GREEN}INFO:{Color.END} (DHKey) {basic_id[0]}                                    {Color.GREEN}INFO:{Color.END} (DHKeyOutput) {basic_id[1]}")
-					print(f"{Color.YELLOW}VERSION:{Color.END} {basic_id[2]}   {Color.GREEN}INFO:{Color.END} (PrivateKey) {basic_id[3]}")
+					print(f"{Color.YELLOW}VERSION:{Color.END} {basic_id[2]}   {Color.GREEN}INFO:{Color.END} (PublicKey) {basic_id[3]}")
 		else:
 			print(f"{Color.RED}PANIC{Color.END}: You don't have a private key.")
 
@@ -109,8 +111,7 @@ class Node(threading.Thread):
 
 				# tell the destination node that they sent too many version messages
 				data = ["error", "user sent more than one version message"]
-				data = [x.encode('utf-8') for x in data]
-				payload = rlp_encode(data)
+				payload = pack(data)
 				self.send_to_node(node, payload)
 
 				time.sleep(2) # 2 second safety wait period
@@ -176,16 +177,19 @@ class Node(threading.Thread):
 			self.debug_print("connecting to %s port %s" % (host, port))
 			sock.connect((host, port))
 
-			encoded_id = [x.encode('utf-8') for x in self.id]
-			payload = rlp_encode(encoded_id)
+			#encoded_id = [x.encode('utf-8') for x in self.id]
+			#payload = rlp_encode(encoded_id)
+
+			payload = pack(self.id)
 			sock.send(payload)
 			# sock.send(self.id[0].encode('utf-8'))
 
 			connected_node_id = sock.recv(4096)
-			connected_node_id = rlp_decode(connected_node_id)
-			connected_node_id = [x.decode('utf-8') for x in connected_node_id]
-
+			connected_node_id = unpack(connected_node_id)
+			#connected_node_id = rlp_decode(connected_node_id)
+			#connected_node_id = [x.decode('utf-8') for x in connected_node_id]
 			print(connected_node_id)
+
 			self.connected_node_ids.append(connected_node_id)
 
 			if self.id[0:1] == connected_node_id[0:1]:
@@ -266,11 +270,13 @@ class Node(threading.Thread):
 				if self.max_connections == 0 or len(self.nodes_inbound) < self.max_connections:
 
 					connected_node_id = connection.recv(4096) # When a node is connected, it sends it id!
-					connected_node_id = rlp_decode(connected_node_id)
-					connected_node_id = [x.decode('utf-8') for x in connected_node_id]
+					#connected_node_id = rlp_decode(connected_node_id)
+					#connected_node_id = [x.decode('utf-8') for x in connected_node_id]
+					connected_node_id = unpack(connected_node_id)
 
-					encoded_id = [x.encode('utf-8') for x in self.id]
-					payload = rlp_encode(encoded_id)
+					#encoded_id = [x.encode('utf-8') for x in self.id]
+					#payload = rlp_encode(encoded_id)
+					payload = pack(self.id)
 					# connection.send(self.id.encode('utf-8')) # Send my id to the connected node!
 					connection.send(payload) # Send my id to the connected node!
 

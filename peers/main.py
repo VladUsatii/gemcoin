@@ -18,6 +18,7 @@ from node import Node
 from p2pmath import *
 from p2perrors import *
 from serialization import *
+from packerfuncs import *
 
 # import functions from parent
 p = os.path.abspath('../..')
@@ -141,26 +142,30 @@ class p2p(object):
 			print("(NodeKeyError) Your node does not have a private key on file. Without a key, you can't perform on chain.\n\nSee github.com/VladUsatii/gemcoin.git for directions to creating a private key.")
 			self.Disconnect(0x02)
 
-		headers = [x.encode('utf-8') for x in headers]
-		payload = rlp_encode(headers)
+		#headers = [x.encode('utf-8') for x in headers]
+		#payload = rlp_encode(headers)
 
-		aes = AES_exchange(self.AES_key)
-		encrypted_payload = aes.encrypt(payload)
+		#aes = AES_exchange(self.AES_key)
+		#encrypted_payload = aes.encrypt(payload)
 
-		return payload
+		#return payload
+
+		return pack(headers, self.AES_key)
 
 	def Disconnect(self, error):
 		# NOTE: All codes return non-blocking requests. A new peer will be introduced on Disconnect.
 		# [message_type: 0x01, port, subprotocol]
 		headers = [0x01, 1513, error]
 
-		headers = [x.encode('utf-8') for x in headers]
-		payload = rlp_encode(headers)
+		#headers = [x.encode('utf-8') for x in headers]
+		#payload = rlp_encode(headers)
 
-		aes = AES_exchange(self.AES_key)
-		encrypted_payload = aes.encrypt(payload)
+		#aes = AES_exchange(self.AES_key)
+		#encrypted_payload = aes.encrypt(payload)
 
-		return payload
+		#return payload
+
+		return pack(headers, self.AES_key)
 
 """
 srcNode
@@ -268,14 +273,15 @@ class srcNode(Node):
 
 	def node_message(self, node, data):
 		session_dhkey = self.dhkey(node.id[0], self.id[1])
-		aes = AES_exchange(session_dhkey)
-
+		#aes = AES_exchange(session_dhkey)
 		node_update_instance = p2p(session_dhkey, self, node)
 
+		message = unpack(data, session_dhkey)
+
 		# aes decrypt first
-		decrypted_data = aes.decrypt(data)
+		#decrypted_data = aes.decrypt(data)
 		# de-serialization
-		message = rlp_decode(decrypted_data)
+		#message = rlp_decode(decrypted_data)
 
 		# HEADERS are LISTS
 		if isinstance(message, list):
