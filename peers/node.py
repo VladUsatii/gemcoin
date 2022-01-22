@@ -1,3 +1,5 @@
+import binascii
+import codecs
 import socket
 import time
 import threading
@@ -70,7 +72,8 @@ class Node(threading.Thread):
 
 	def mapPublicKey(self, priv_key: str):
 		pub_key = Wallet.nonstatic_private_to_public(priv_key)
-		return pub_key
+		str_key = f"{pub_key}"[2:-1]
+		return str_key
 
 	def dhke(self):
 		""" Generate a D-H key for symmetric encryption of packets """
