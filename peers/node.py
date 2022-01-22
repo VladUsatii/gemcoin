@@ -18,7 +18,8 @@ if p not in sys.path:
 	sys.path.append(p)
 
 from gemcoin.prompt.color import Color
-from gemcoin.symmetric import AES_exchange
+# from gemcoin.symmetric import AES_exchange
+from gemcoin.symmetric import AES_byte_exchange
 from gemcoin.wallet.keygenerator import Wallet
 
 class Node(threading.Thread):
@@ -264,7 +265,7 @@ class Node(threading.Thread):
 		while not self.TERMINATE.is_set():  # Check whether the thread needs to be closed
 			try:
 				self.debug_print("Node: Wait for incoming connection")
-				connection, client_address = self.sock.accept()
+				connection, client_address = unpack(self.sock.accept())
 
 				self.debug_print("Total inbound connections:" + str(len(self.nodes_inbound)))
 				if self.max_connections == 0 or len(self.nodes_inbound) < self.max_connections:

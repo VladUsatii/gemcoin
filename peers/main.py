@@ -25,7 +25,8 @@ p = os.path.abspath('../..')
 if p not in sys.path:
 	sys.path.append(p)
 
-from gemcoin.symmetric import AES_exchange
+#from gemcoin.symmetric import AES_exchange
+from gemcoin.symmetric import AES_byte_exchange
 from gemcoin.prompt.color import Color
 
 IP = socket.gethostbyname(socket.gethostname())

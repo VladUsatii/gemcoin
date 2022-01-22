@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # testing serialization and AES key type, should've done this a long time ago
 from serialization import *
 import sys, os
@@ -34,5 +33,7 @@ def unpack(payload: bytes, AES_key=None) -> list:
 	if AES_key is not None:
 		a = AES_byte_exchange(AES_key)
 		payload = a.decrypt(payload)
+	print(payload)
 	raw = rlp_decode(payload)
+	print(raw)
 	return [x.decode('utf-8') for x in raw]

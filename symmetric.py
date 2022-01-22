@@ -45,7 +45,9 @@ class AES_byte_exchange(object):
 		extra = len(raw) % BS
 		if extra > 0:
 			raw = raw + (b'\x0b' * (BS - extra))
-			raw = base64.b64encode(raw)
+		elif extra == 0:
+			raw = raw + (b'\x0b' * BS)
+		raw = base64.b64encode(raw)
 
 		iv = get_random_bytes(AES.block_size)
 		cipher = AES.new(key=self.key, mode=AES.MODE_CFB, iv=iv)
@@ -55,8 +57,10 @@ class AES_byte_exchange(object):
 		unpad = lambda s: s[:-ord(s[-1:])]
 
 		enc = base64.b64decode(enc)
+		print(enc)
 		iv = enc[:AES.block_size]
 		cipher = AES.new(self.key, AES.MODE_CFB, iv)
 		decoded = base64.b64decode(cipher.decrypt(enc[AES.block_size:]))
+		print(decoded)
 
 		return decoded.rstrip(b'\x0b')
