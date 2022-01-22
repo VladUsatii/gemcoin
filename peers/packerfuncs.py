@@ -15,7 +15,10 @@ PACK
 Encrypts RLP-encoded bytes into an AES exchange
 """
 def pack(raw: list, AES_key=None) -> bytes:
-	payload = rlp_encode([x.encode('utf-8') for x in raw])
+	for index, x in enumerate(raw):
+		if isinstance(x, bytes) is False:
+			raw[index] = x.encode('utf-8')
+	payload = rlp_encode(raw)
 	if AES_key is None:
 		return payload
 	elif AES_key is not None:
