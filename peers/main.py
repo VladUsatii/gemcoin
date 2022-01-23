@@ -29,6 +29,11 @@ if p not in sys.path:
 from gemcoin.symmetric import AES_byte_exchange
 from gemcoin.prompt.color import Color
 
+# memory & disk alloc/handling
+from gemcoin.memory.uppermalloc import *
+from gemcoin.memory.profiling import *
+from gemcoin.memory.cache_info import *
+
 IP = socket.gethostbyname(socket.gethostname())
 
 """
@@ -50,6 +55,8 @@ class Validate(object):
 
 		self.src_blockchain = []
 
+		self.node_type = src_node.node_type
+
 	def init_blockchain(self, node_type: int):
 		# src_node.send(update.Checkup())
 		# attempts to read from key-value store
@@ -60,11 +67,13 @@ class Validate(object):
 		Destination Node needs src node to acknowledge and asks to prepare to receive all blocks (opcode 0x00 0x01)
 		"""
 		# type of node (the lower the number, the more data required on disk)
-		node_type = [self.MESSAGES_REQUEST[0].encode('utf-8'), str(self.node_type).encode('utf-8')]
-		serialized_request = rlp_encode(node_type)
+		data = [self.MESSAGES_REQUEST[0], self.node_type]
+		payload = pack(data, self.AES_key)
+		#node_type = [self.MESSAGES_REQUEST[0].encode('utf-8'), str(self.node_type).encode('utf-8')]
+		#serialized_request = rlp_encode(node_type)
 
-		request = AES_exchange(self.AES_key).encrypt(serialized_request)
-		self.src_node.send_to_node(self.dest_node, request)
+		#request = AES_exchange(self.AES_key).encrypt(serialized_request)
+		self.src_node.send_to_node(self.dest_node, payload)
 
 	def ack_send_all_blocks(self, node_type: int):
 		"""
@@ -72,18 +81,16 @@ class Validate(object):
 
 		If it has no blocks as well, both will disconnect and find other nodes on the network
 		"""
-		
-		# ping host with Connect and init blockchain cache for steady delivery of blocks
-		status = self.init_blockchain(node_type)
 
-		# if user doesn't have any blocks
-		if status is None:
+		# check if user has any blocks to send or if they have a full node download
+		status = self.init_blockchain(node_type)
+		if status is None or self.node_type != node_type:
 			self.update.Disconnect(0x02) # useless node
-		if status:
-			request = self.MESSAGES_ACK[0]
-			serialized_request = rlp_encode(request)
-			request = AES_exchange(self.AES_key).encrypt(self.MESSAGES_ACK[0])
-			self.src_node.send_to_node(self.dest_node, serialized_request)
+		elif status is not None and self.node_type == node_type:
+			payload = pack(self.MESSAGES_ACK[0], self.AES_key)
+			#serialized_request = rlp_encode(request)
+			#request = AES_exchange(self.AES_key).encrypt(self.MESSAGES_ACK[0])
+			self.src_node.send_to_node(self.dest_node, payload)
 
 	def request_block_update(self):
 		"""
@@ -417,6 +424,8 @@ TODO: Add the sys argv to the docs and create a client
 
 """
 def main():
+	memInit()
+
 	IP = socket.gethostbyname(socket.gethostname())
 	src_node = srcNode(IP, 1513)
 	src_node.start()

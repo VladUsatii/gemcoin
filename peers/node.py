@@ -50,6 +50,10 @@ class Node(threading.Thread):
 		else:
 			self.id = str(id)
 
+		self.client_dict = {0: "full_node", 1: "full_node_less", 2: "full_node_less_headersonly", 3: "light_node", 4: "light_node_less", 5: "light_node_less_headersonly", 6: "less_client", 7: "less_client_noheaders", 8: "spectator"}
+		self.node_type = self.node_type()
+		self.node_num = str([key for key, value in self.client_dict.items() if value == self.node_type][0])
+
 		self.connected_node_ids = []
 
 		self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -68,7 +72,19 @@ class Node(threading.Thread):
 		return self.nodes_inbound + self.nodes_outbound
 
 	def debug_print(self, message):
-		if self.debug: print(f"{Color.GREEN}INFO:{Color.END} (" + self.id[0] + "): " + message)
+		if self.debug: print(f"{Color.GREEN}INFO:{Color.END} (" + self.node_num + "): " + message)
+
+	def node_type(self):
+		try:
+			arg = int(sys.argv[1])
+			if arg in range(0,8):
+				return self.client_dict[arg]
+			else:
+				return self.client_dict[8]
+		except IndexError:
+			return self.client_dict[8]
+		except Exception as e:
+			print(f"{Color.RED}PANIC:{Color.END} Invalid node type. Use a number from 0-8; please do research before entering one of these numbers.")
 
 	def mapPublicAddr(self, priv_key: str):
 		pub = Wallet.nonstatic_private_to_public(priv_key)
@@ -98,7 +114,6 @@ class Node(threading.Thread):
 					full_pub_addr = self.mapPublicAddr(db['priv_key'])
 
 					# append public key to ID
-					print(f"Public key: {full_pub_addr}")
 					basic_id.append(full_pub_addr)
 
 					print(f"{Color.GREEN}INFO:{Color.END} (DHKey) {basic_id[0]}                                    {Color.GREEN}INFO:{Color.END} (DHKeyOutput) {basic_id[1]}")
@@ -322,7 +337,7 @@ class Node(threading.Thread):
 		print("Node stopped")
 
 	def outbound_node_connected(self, node):
-		self.debug_print("outbound_node_connected: " + node.id[0])
+		self.debug_print("outbound_node_connected: " + self.node_num)
 		if self.callback is not None:
 			self.callback("outbound_node_connected", self, node, {})
 
@@ -378,7 +393,7 @@ class Node(threading.Thread):
 			self.callback("node_message", self, node, data)
 
 	def node_disconnect_with_outbound_node(self, node):
-		self.debug_print("node wants to disconnect with oher outbound node: " + node.id[0])
+		self.debug_print("node wants to disconnect with outbound node: " + node.id[0])
 		if self.callback is not None:
 			self.callback("node_disconnect_with_outbound_node", self, node, {})
 
