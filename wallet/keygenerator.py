@@ -104,7 +104,18 @@ class Wallet(object):
 		public_key = codecs.encode(key_bytes, 'hex')
 
 		return public_key
-    
+ 
+	def nonstatic_public_to_address(public_key):
+		public_key_bytes = codecs.decode(public_key, 'hex')
+		keccak_hash = keccak.new(digest_bits=256)
+		keccak_hash.update(public_key_bytes)
+		keccak_digest = keccak_hash.hexdigest()
+
+		wallet_len = 40
+		wallet = '0x' + keccak_digest[-wallet_len:]
+
+		return wallet
+
 	@staticmethod
 	def __public_to_address(public_key):
 		public_key_bytes = codecs.decode(public_key, 'hex')
@@ -116,5 +127,4 @@ class Wallet(object):
 		wallet = '0x' + keccak_digest[-wallet_len:]
 
 		return wallet
-
 
