@@ -70,10 +70,10 @@ class Node(threading.Thread):
 	def debug_print(self, message):
 		if self.debug: print(f"{Color.GREEN}INFO:{Color.END} (" + self.id[0] + "): " + message)
 
-	def mapPublicKey(self, priv_key: str):
-		pub_key = Wallet.nonstatic_private_to_public(priv_key)
-		str_key = f"{pub_key}"[2:-1]
-		return str_key
+	def mapPublicAddr(self, priv_key: str):
+		pub = Wallet.nonstatic_private_to_public(priv_key)
+		addr = Wallet.nonstatic_public_to_address(pub)
+		return addr
 
 	def dhke(self):
 		""" Generate a D-H key for symmetric encryption of packets """
@@ -94,13 +94,15 @@ class Node(threading.Thread):
 					self.stop()
 				else:
 					# map private key to public key via node function
-					pub_key = self.mapPublicKey(db['priv_key'])
+					#full_pub_key = self.mapPublicKey(db['priv_key'])
+					full_pub_addr = self.mapPublicAddr(db['priv_key'])
+
 					# append public key to ID
-					print(f"Public key: {pub_key}")
-					basic_id.append(pub_key)
+					print(f"Public key: {full_pub_addr}")
+					basic_id.append(full_pub_addr)
 
 					print(f"{Color.GREEN}INFO:{Color.END} (DHKey) {basic_id[0]}                                    {Color.GREEN}INFO:{Color.END} (DHKeyOutput) {basic_id[1]}")
-					print(f"{Color.YELLOW}VERSION:{Color.END} {basic_id[2]}   {Color.GREEN}INFO:{Color.END} (PublicKey) {basic_id[3]}")
+					print(f"{Color.YELLOW}VERSION:{Color.END} {basic_id[2]}   {Color.GREEN}INFO:{Color.END} (PublicAddress) {full_pub_addr}")
 		else:
 			print(f"{Color.RED}PANIC{Color.END}: You don't have a private key.")
 

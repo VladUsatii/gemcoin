@@ -13,11 +13,23 @@ PACK
 
 Encrypts RLP-encoded bytes into an AES exchange
 """
-def pack(raw: list, AES_key=None) -> bytes:
-	for index, x in enumerate(raw):
-		if isinstance(x, bytes) is False:
+def pack(raw_list: list, AES_key=None) -> bytes:
+	raw = [0] * len(raw_list)
+	for index, x in enumerate(raw_list):
+		if isinstance(x, list):
+			raw[index] = [0] * len(x)
+			for indexer, y in enumerate(x):
+				if isinstance(y, bytes):
+					continue
+				else:
+					raw[index][indexer] = y.encode('utf-8')
+		elif isinstance(x, bytes):
+			continue
+		else:
 			raw[index] = x.encode('utf-8')
+
 	payload = rlp_encode(raw)
+	#payload = rlp_encode([x.encode('utf-8') for x in raw])
 	if AES_key is None:
 		return payload
 	elif AES_key is not None:
@@ -33,7 +45,17 @@ def unpack(payload: bytes, AES_key=None) -> list:
 	if AES_key is not None:
 		a = AES_byte_exchange(AES_key)
 		payload = a.decrypt(payload)
-	print(payload)
+
 	raw = rlp_decode(payload)
-	print(raw)
-	return [x.decode('utf-8') for x in raw]
+
+	for index, x in enumerate(raw):
+		if isinstance(x, bytes):
+			raw[index] = x.decode('utf-8')
+		elif isinstance(x, list):
+			for indexer, y in enumerate(x):
+				if isinstance(y, bytes):
+					raw[index][indexer] = y.decode('utf-8')
+				else:
+					continue
+	return raw
+	#return [x.decode('utf-8') for x in raw]
