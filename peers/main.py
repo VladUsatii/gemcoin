@@ -424,7 +424,7 @@ TODO: Add the sys argv to the docs and create a client
 
 """
 def main():
-	memInit()
+	ephemeralProcess()
 
 	IP = socket.gethostbyname(socket.gethostname())
 	src_node = srcNode(IP, 1513)
