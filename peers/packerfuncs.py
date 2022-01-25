@@ -1,5 +1,4 @@
 # testing serialization and AES key type, should've done this a long time ago
-from serialization import *
 import sys, os
 
 p = os.path.abspath('../..')
@@ -7,6 +6,7 @@ if p not in sys.path:
 	sys.path.append(p)
 
 from gemcoin.symmetric import AES_byte_exchange
+from gemcoin.peers.serialization import *
 
 """
 PACK
