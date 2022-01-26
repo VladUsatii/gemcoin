@@ -59,3 +59,52 @@ def unpack(payload: bytes, AES_key=None) -> list:
 					continue
 	return raw
 	#return [x.decode('utf-8') for x in raw]
+
+"""
+NESTED UNPACK
+
+Decrypts RLP-encoded AES bytestream into the original decoded format
+"""
+def nested_unpack(payload: bytes, AES_key=None) -> list:
+	if AES_key is not None:
+		a = AES_byte_exchange(AES_key)
+		payload = a.decrypt(payload)
+
+	raw = rlp_decode(payload)
+
+	for index, x in enumerate(raw):
+		if isinstance(x, bytes):
+			raw[index] = x.decode('utf-8')
+		elif isinstance(x, list):
+			for indexer, y in enumerate(x):
+				if isinstance(y, bytes):
+					try:
+						raw[index][indexer] = y.decode('utf-8')
+					except Exception:
+						continue
+				elif isinstance(y, list):
+					for indexerest, z in enumerate(y):
+						if isinstance(z, bytes):
+							try:
+								raw[index][indexer][indexerest] = z.decode('utf-8')
+							except Exception:
+								continue
+						else:
+							continue
+				else:
+					continue
+	return raw
+	#return [x.decode('utf-8') for x in raw]
+
+
+def nested_decode(payload: list):
+	if isinstance(payload, list):
+		for index, x in enumerate(payload):
+			if isinstance(x, list):
+				nested_decode(payload[index])
+			elif isinstance(x, bytes):
+				try:
+					payload[index] = x.decode('utf-8')
+				except Exception:
+					continue
+	return payload

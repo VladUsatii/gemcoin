@@ -32,32 +32,36 @@ GETBLOCKHASH
 
 Takes in a dictionary, formats it with json dumps, and serializes it and asymmetrically encrypts with SHA256 hash output
 """
-def getBlockHash(serializableList) -> bytes:
-	hashableObj = pack(serializableList)
+def getBlockHash(serializableList) -> str:
+	hashableObj = rlp_encode(serializableList)
 	dhash = hashlib.sha256()
 	dhash.update(hashableObj)
-	return dhash.hexdigest()
+	return str(dhash.hexdigest()).encode('utf-8')
 
 def getGenesisVersion() -> hex:
 	random.seed(10**8)
-	bits = random.getrandbits(256)
+	bits = random.getrandbits(128)
 	bits_hex = hex(bits).upper().replace('X', 'x')
-	return bits_hex
+	return str(bits_hex).encode('utf-8')
 
 def genesisMerkleRoot(MAGIC) -> str:
 	x = hashlib.sha256()
-	x.update(MAGIC.encode('utf-8'))
-	return x.hexdigest()
+	x.update(MAGIC)
+	parts = str(x.hexdigest())
+	return [parts[0:31].encode('utf-8'), parts[32:].encode('utf-8')]
 
 def getGenesisTimestamp():
-	return hex(1643079531).upper().replace('X', 'x')
+	dt = hex(int(datetime(2022, 1, 25, 20, 35, 23).strftime("%Y%m%d%H%M%S"))).upper().replace('X', 'x').encode('utf-8')
+	return dt
 
 def validateHeader(header) -> bool:
 	try:
 		version = header[0][1]
 		prev_block = header[1][1]
-		merkle_root = header[2][1]
-		timestamp = header[3][1]
+		#merkle_root = header[2][1]
+		#timestamp = header[3][1]
+		timestamp = header[2][1]
+		merkle_root = header[3][1][0] + header[3][1][1]
 
 		# TODO: Write validator
 		return True
@@ -99,30 +103,33 @@ def ephemeralProcess() -> list:
 	CACHE_FOLDER = os.path.join(HOME, 'Library')
 	if os.path.exists(CACHE_FOLDER) is False:
 		raise OSError("User must be using a generic path.")
+
 	CACHE_LOCATION = os.path.join(CACHE_FOLDER, "Gemcoin")
 	if os.path.exists(CACHE_LOCATION) is False:
 		os.mkdir(CACHE_LOCATION)
 
-	# Check if headers cache exists (All node types have a header cache)
-	FILE_LOCATION = os.path.join(CACHE_LOCATION, "headers") # headers cache consists of key-value (block num -> hash)
-	mode = 'r' if os.path.exists(FILE_LOCATION) is True else 'w'
-	if mode == 'w':
+	HEADERS_LOCATION = os.path.join(CACHE_LOCATION, "headers")
+	if os.path.exists(HEADERS_LOCATION) is False:
+		os.mkdir(HEADERS_LOCATION)
+		mode = "w"
+	elif os.path.exists(HEADERS_LOCATION) is True:
+		mode = "r"
+
+	if mode == 'w': # FIRST TIME USER
 		task_args.append("REQUEST_FULL_BLOCKS")
 		task_args.append("0")
 
 		# TODO: Write the genesis block
-		GENESIS = [["version", getGenesisVersion()],
-					["prev_block", str("".zfill(64))],
-					["merkle_root", genesisMerkleRoot(getGenesisVersion())],
-					["timestamp", getGenesisTimestamp()]]
+		GENESIS = [["version".encode('utf-8'), getGenesisVersion()],
+					["prev_block".encode('utf-8'), str("".zfill(32)).encode('utf-8')], # 2**5
+					#["merkle_root".encode('utf-8'), genesisMerkleRoot(getGenesisVersion())],
+					["timestamp".encode('utf-8'), getGenesisTimestamp()],
+					["merkle_root".encode('utf-8'), genesisMerkleRoot(getGenesisVersion())]]
 
-		with open(FILE_LOCATION, mode) as f:
-			print(f"{Color.GREEN}INFO:{Color.END} Created header cache.")
-			pass
+		print(f"{Color.GREEN}INFO:{Color.END} Created header cache.")
 
-		db = leveldb.LevelDB(FILE_LOCATION)
-		print(db)
-		db.Put("0", pack(GENESIS))
+		db = leveldb.LevelDB(HEADERS_LOCATION)
+		db.Put("0".encode('utf-8'), rlp_encode(GENESIS))
 
 		block_hash = getBlockHash(GENESIS)
 		task_args.append(block_hash) # append genesis information locally
@@ -130,21 +137,20 @@ def ephemeralProcess() -> list:
 		task_args.append("REQUEST_BLOCK_UPDATE")
 
 		# init leveldb
-		db = leveldb.LevelDB(FILE_LOCATION)
+		db = leveldb.LevelDB(HEADERS_LOCATION)
 
 		# get most recent block number and serialized value
 		headers = list(db.RangeIter(include_value=True, reverse=True))
+
 		recent_kv = list(headers[0])
-		most_recent_block_num, most_recent_serial_value = recent_kv[0].decode('utf-8'), unpack(recent_kv[1])
-		print(most_recent_serial_value)
+		most_recent_block_num, most_recent_serial_value = recent_kv[0].decode('utf-8'), bytes(recent_kv[1])
+		decoded_header = nested_decode(nested_unpack(most_recent_serial_value))
 
 		# check if most recent hash value is valid
-		header_validation = validateHeader(most_recent_serial_value)
+		header_validation = validateHeader(decoded_header)
 		if header_validation is True:
 			most_recent_hash_value = getBlockHash(most_recent_serial_value)
 			task_args.append(most_recent_hash_value)
 			print(f"{Color.GREEN}INFO:{Color.END} Up to block {int(most_recent_block_num)}: {most_recent_hash_value}")
 
 	return task_args
-
-ephemeralProcess()
