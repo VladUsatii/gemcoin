@@ -424,7 +424,8 @@ TODO: Add the sys argv to the docs and create a client
 
 """
 def main():
-	ephemeralProcess()
+	task_args = ephemeralProcess() # [PROCESS_CALL, CURRENT_NUM_OF_BLOCKS, RECENT_BLOCK_HASH]
+	print(f"{Color.GREEN}INFO:{Color.END} Up to block {int(task_args[1])}: {task_args[2]}")
 
 	IP = socket.gethostbyname(socket.gethostname())
 	src_node = srcNode(IP, 1513)

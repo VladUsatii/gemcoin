@@ -58,8 +58,6 @@ def validateHeader(header) -> bool:
 	try:
 		version = header[0][1]
 		prev_block = header[1][1]
-		#merkle_root = header[2][1]
-		#timestamp = header[3][1]
 		timestamp = header[2][1]
 		merkle_root = header[3][1][0] + header[3][1][1]
 
@@ -115,16 +113,16 @@ def ephemeralProcess() -> list:
 	elif os.path.exists(HEADERS_LOCATION) is True:
 		mode = "r"
 
+	# COMMON
+	# TODO: Write the genesis block
+	GENESIS = [["version".encode('utf-8'), getGenesisVersion()],
+				["prev_block".encode('utf-8'), str("".zfill(32)).encode('utf-8')], # 2**5
+				["timestamp".encode('utf-8'), getGenesisTimestamp()],
+				["merkle_root".encode('utf-8'), genesisMerkleRoot(getGenesisVersion())]]
+
 	if mode == 'w': # FIRST TIME USER
 		task_args.append("REQUEST_FULL_BLOCKS")
 		task_args.append("0")
-
-		# TODO: Write the genesis block
-		GENESIS = [["version".encode('utf-8'), getGenesisVersion()],
-					["prev_block".encode('utf-8'), str("".zfill(32)).encode('utf-8')], # 2**5
-					#["merkle_root".encode('utf-8'), genesisMerkleRoot(getGenesisVersion())],
-					["timestamp".encode('utf-8'), getGenesisTimestamp()],
-					["merkle_root".encode('utf-8'), genesisMerkleRoot(getGenesisVersion())]]
 
 		print(f"{Color.GREEN}INFO:{Color.END} Created header cache.")
 
@@ -134,9 +132,7 @@ def ephemeralProcess() -> list:
 		block_hash = getBlockHash(GENESIS)
 		task_args.append(block_hash) # append genesis information locally
 	elif mode == 'r':
-		task_args.append("REQUEST_BLOCK_UPDATE")
-
-		# init leveldb
+		# re-init leveldb
 		db = leveldb.LevelDB(HEADERS_LOCATION)
 
 		# get most recent block number and serialized value
@@ -144,13 +140,21 @@ def ephemeralProcess() -> list:
 
 		recent_kv = list(headers[0])
 		most_recent_block_num, most_recent_serial_value = recent_kv[0].decode('utf-8'), bytes(recent_kv[1])
-		decoded_header = nested_decode(nested_unpack(most_recent_serial_value))
+
+		byteheader = nested_unpack(most_recent_serial_value)
+		hashedheader = getBlockHash(byteheader)
+		decoded_header = nested_decode(byteheader)
+
+		if hashedheader == getBlockHash(GENESIS):
+			task_args.append("REQUEST_FULL_BLOCKS")
+			task_args.append("0")
+		else:
+			task_args.append("REQUEST_BLOCK_UPDATE")
+			task_args.append(str(most_recent_block_num))
 
 		# check if most recent hash value is valid
 		header_validation = validateHeader(decoded_header)
 		if header_validation is True:
-			most_recent_hash_value = getBlockHash(most_recent_serial_value)
-			task_args.append(most_recent_hash_value)
-			print(f"{Color.GREEN}INFO:{Color.END} Up to block {int(most_recent_block_num)}: {most_recent_hash_value}")
+			task_args.append(hashedheader)
 
 	return task_args

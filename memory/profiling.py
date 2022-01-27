@@ -30,5 +30,6 @@ def AVG_ACTIONIO(ITERS: int):
 			r = timeit.timeit(func, number=ITERS)
 			result = r/ITERS
 			print(f"{Color.GREEN}INFO:{Color.END} Average action time in {ITERS} iterations: {result}")
+			return func(*args, **kwargs)
 		return wraps
 	return decorator

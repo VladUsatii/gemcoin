@@ -71,7 +71,7 @@ def nested_unpack(payload: bytes, AES_key=None) -> list:
 		payload = a.decrypt(payload)
 
 	raw = rlp_decode(payload)
-
+	"""
 	for index, x in enumerate(raw):
 		if isinstance(x, bytes):
 			raw[index] = x.decode('utf-8')
@@ -93,6 +93,7 @@ def nested_unpack(payload: bytes, AES_key=None) -> list:
 							continue
 				else:
 					continue
+	"""
 	return raw
 	#return [x.decode('utf-8') for x in raw]
 
