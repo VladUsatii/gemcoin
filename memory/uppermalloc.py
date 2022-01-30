@@ -1,5 +1,4 @@
 import resource
-import sys, os
 import timeit
 import functools
 import sys, os
@@ -21,53 +20,13 @@ p = os.path.abspath('../..')
 if p not in sys.path:
 	sys.path.append(p)
 
+from gemcoin.memory.common import *
+
 from gemcoin.peers.packerfuncs import *
 from gemcoin.memory.profiling import *
 from gemcoin.memory.cache_info import *
 from gemcoin.peers.p2perrors import *
 from gemcoin.prompt.color import Color
-
-"""
-GETBLOCKHASH
-
-Takes in a dictionary, formats it with json dumps, and serializes it and asymmetrically encrypts with SHA256 hash output
-"""
-def getBlockHash(serializableList) -> str:
-	hashableObj = rlp_encode(serializableList)
-	dhash = hashlib.sha256()
-	dhash.update(hashableObj)
-	return str(dhash.hexdigest()).encode('utf-8')
-
-def getGenesisVersion() -> hex:
-	random.seed(10**8)
-	bits = random.getrandbits(128)
-	bits_hex = hex(bits).upper().replace('X', 'x')
-	return str(bits_hex).encode('utf-8')
-
-def genesisMerkleRoot(MAGIC) -> str:
-	x = hashlib.sha256()
-	x.update(MAGIC)
-	parts = str(x.hexdigest())
-	return [parts[0:31].encode('utf-8'), parts[32:].encode('utf-8')]
-
-def getGenesisTimestamp():
-	dt = hex(int(datetime(2022, 1, 25, 20, 35, 23).strftime("%Y%m%d%H%M%S"))).upper().replace('X', 'x').encode('utf-8')
-	return dt
-
-def validateHeader(header) -> bool:
-	try:
-		version = header[0][1]
-		prev_block = header[1][1]
-		timestamp = header[2][1]
-		merkle_root = header[3][1][0] + header[3][1][1]
-
-		# TODO: Write validator
-		return True
-		# ... Finish this later
-	except Exception:
-		print(f"{Color.RED}PANIC:{Color.END} User tampered with header. Unreadable.")
-		return False
-
 """
 EPHEMERAL PROCESS
 
@@ -118,6 +77,7 @@ def ephemeralProcess() -> list:
 	GENESIS = [["version".encode('utf-8'), getGenesisVersion()],
 				["prev_block".encode('utf-8'), str("".zfill(32)).encode('utf-8')], # 2**5
 				["timestamp".encode('utf-8'), getGenesisTimestamp()],
+				#["raw_data".encode('utf-8'), "let's change the world with a fancier, general-purpose coin.".encode('utf-8')],
 				["merkle_root".encode('utf-8'), genesisMerkleRoot(getGenesisVersion())]]
 
 	if mode == 'w': # FIRST TIME USER
@@ -131,6 +91,7 @@ def ephemeralProcess() -> list:
 
 		block_hash = getBlockHash(GENESIS)
 		task_args.append(block_hash) # append genesis information locally
+
 	elif mode == 'r':
 		# re-init leveldb
 		db = leveldb.LevelDB(HEADERS_LOCATION)
@@ -156,5 +117,4 @@ def ephemeralProcess() -> list:
 		header_validation = validateHeader(decoded_header)
 		if header_validation is True:
 			task_args.append(hashedheader)
-
 	return task_args

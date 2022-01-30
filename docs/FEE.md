@@ -7,6 +7,8 @@
 
 ## Electric Fee: A General Overview
 
+![Formal Specification](https://github.com/VladUsatii/gemcoin/blob/main/docs/electricityFormalSpec.png)
+
 A fee in cryptocurrency (especially general-purpose chains) allows users only *n* computational resources, based on a fee paid through the exchange itself. This devalues the coin, while limiting the transact allotted to machines. To reduce the cost of transactions and allow users to keep their coins, an "electric" fee mechanism is proposed. This would persistently increase coin supply while decreasing transaction traffic on the chain.
 
 In order to stifle transactions and create a slow, yet accessible chain, a fee is created. Our fee comes in the form of computational resources expended on the source machine.
