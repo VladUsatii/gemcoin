@@ -21,7 +21,7 @@ if p not in sys.path:
 	sys.path.append(p)
 
 from gemcoin.memory.common import *
-
+from gemcoin.memory.block import *
 from gemcoin.peers.packerfuncs import *
 from gemcoin.memory.profiling import *
 from gemcoin.memory.cache_info import *
@@ -72,22 +72,16 @@ def ephemeralProcess() -> list:
 	elif os.path.exists(HEADERS_LOCATION) is True:
 		mode = "r"
 
-	# COMMON
-	# TODO: Write the genesis block
-	GENESIS = [["version".encode('utf-8'), getGenesisVersion()],
-				["prev_block".encode('utf-8'), str("".zfill(32)).encode('utf-8')], # 2**5
-				["timestamp".encode('utf-8'), getGenesisTimestamp()],
-				#["raw_data".encode('utf-8'), "let's change the world with a fancier, general-purpose coin.".encode('utf-8')],
-				["merkle_root".encode('utf-8'), genesisMerkleRoot(getGenesisVersion())]]
+	GENESIS = str(Common.Genesis().constructHeader()).encode('utf-8')
 
 	if mode == 'w': # FIRST TIME USER
 		task_args.append("REQUEST_FULL_BLOCKS")
 		task_args.append("0")
 
-		print(f"{Color.GREEN}INFO:{Color.END} Created header cache.")
-
 		db = leveldb.LevelDB(HEADERS_LOCATION)
-		db.Put("0".encode('utf-8'), rlp_encode(GENESIS))
+		db.Put("0".encode('utf-8'), GENESIS)
+
+		print(f"{Color.GREEN}INFO:{Color.END} Created header cache.")
 
 		block_hash = getBlockHash(GENESIS)
 		task_args.append(block_hash) # append genesis information locally
@@ -99,22 +93,15 @@ def ephemeralProcess() -> list:
 		# get most recent block number and serialized value
 		headers = list(db.RangeIter(include_value=True, reverse=True))
 
-		recent_kv = list(headers[0])
-		most_recent_block_num, most_recent_serial_value = recent_kv[0].decode('utf-8'), bytes(recent_kv[1])
+		blocknum = list(headers[0])[0].decode('utf-8')
+		recent_kv = list(headers[0])[1].decode('utf-8')
+		headerDecoded = DeconstructBlockHeader(str(recent_kv))
 
-		byteheader = nested_unpack(most_recent_serial_value)
-		hashedheader = getBlockHash(byteheader)
-		decoded_header = nested_decode(byteheader)
-
-		if hashedheader == getBlockHash(GENESIS):
-			task_args.append("REQUEST_FULL_BLOCKS")
+		if hashlib.sha256(recent_kv.encode('utf-8')).hexdigest() == hashlib.sha256(GENESIS).hexdigest():
 			task_args.append("0")
+			task_args.append("REQUEST_FULL_BLOCKS")
 		else:
+			task_args.append(str(blocknum))
 			task_args.append("REQUEST_BLOCK_UPDATE")
-			task_args.append(str(most_recent_block_num))
 
-		# check if most recent hash value is valid
-		header_validation = validateHeader(decoded_header)
-		if header_validation is True:
-			task_args.append(hashedheader)
 	return task_args

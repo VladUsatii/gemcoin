@@ -34,6 +34,7 @@ import hashlib
 import sys, os, math
 import fixedint
 import struct
+import json
 
 # not for production
 import pprint
@@ -63,7 +64,9 @@ def char_byte_length(i: hex) -> int:
 def padhexa(s, bytes_length):
 	return s[2:].zfill(bytes_length*2) # bytes_length*2 represents the bit repr for hex
 
-def formatHeaderInput(s, byte_spec: int, name: str):
+def formatHeaderInput(s, byte_spec: int, name: str, timestamp=False):
+	if timestamp is True:
+		s = str(s)
 	if isinstance(s, int):
 		if byte_length(s) <= byte_spec and isinstance(s, int):
 			fixed_s = fixedint.UInt32(s)
@@ -73,9 +76,12 @@ def formatHeaderInput(s, byte_spec: int, name: str):
 		else:
 			typeError(s, name)
 	elif isinstance(s, str):
-		if char_byte_length(s) <= byte_spec:
-			s = padhexa(s, byte_spec)
-			return s
+		if len(s) == 378:
+			return s[2:]
+		elif len(s) != 378:
+			if char_byte_length(s) <= byte_spec:
+				s = padhexa(s, byte_spec)
+				return s
 		else:
 			typeError(s, byte_spec)
 
@@ -93,21 +99,32 @@ def ConstructBlockHeader(version: int, previous_hash: hex, mix_hash: hex, timest
 	previous_hash = formatHeaderInput(previous_hash, 32, "previous_hash")
 	mix_hash      = formatHeaderInput(mix_hash, 32, "mix_hash")
 
+	# str(uint256_t) byte spec and pad
+	timestamp     = formatHeaderInput(timestamp, 32, "timestamp", True)
+
 	# int32_t 4 byte spec and pad
-	timestamp     = formatHeaderInput(timestamp, 4, "timestamp")
 	targetEncoded = formatHeaderInput(targetEncoded, 4, "targetEncoded")
 	nonce         = formatHeaderInput(nonce, 4, "nonce")
 	num           = formatHeaderInput(num, 4, "num")
 
 	# char[32] spec and pad
-	txHash        = formatHeaderInput(txHash, 32, "txHash")
+	if int(num) == 0:
+		txHash    = formatHeaderInput(txHash, 188, "genesisConfigTxHash")
+	else:
+		txHash    = formatHeaderInput(txHash, 32, "txHash")
 
 	# if another node finds the block at the same exact time as you, whoever did more work gets 3/4ths of the reward. uncleRoot = unclePubKey + electricityConstant
 	uncleRoot     = formatHeaderInput(uncleRoot, 32, "uncleRoot")
 
 	fixedIndex = version + previous_hash + mix_hash + timestamp + targetEncoded + nonce + num + txHash + uncleRoot
-	if len(fixedIndex) == 296:
-		return fixedIndex
+
+	# check if genesis, if so, change fixed width
+	if int(num) == 0:
+		if len(fixedIndex) == 664:
+			return fixedIndex
+	else:
+		if len(fixedIndex) == 352:
+			return fixedIndex
 
 """
 DeconstructBlockHeader
@@ -115,8 +132,6 @@ DeconstructBlockHeader
 Performs a sanity check on the input and decodes the input into the original indices. Then, performs a base-16 transformation to int for supported types. Returns dict.
 """
 def DeconstructBlockHeader(BlockHeader: str):
-	# sanity check
-
 	version = BlockHeader[0:8]
 	version = int(f'0x{version}', 16)
 
@@ -126,22 +141,35 @@ def DeconstructBlockHeader(BlockHeader: str):
 	mix_hash = BlockHeader[72:136]
 	mix_hash = f'0x{mix_hash}'
 
-	timestamp = BlockHeader[136:144]
+	timestamp = BlockHeader[136:200]
 	timestamp = int(f'0x{timestamp}', 16)
 
-	targetEncoded = BlockHeader[144:152]
+	targetEncoded = BlockHeader[200:208]
 	targetEncoded = int(f'0x{targetEncoded}', 16)
 
-	nonce = BlockHeader[152:160]
+	nonce = BlockHeader[208:216]
 	nonce = int(f'0x{nonce}', 16)
 
-	num = BlockHeader[160:168]
+	num = BlockHeader[216:224]
 	num = int(f'0x{num}', 16)
 
-	txHash = BlockHeader[168:232]
-	txHash = f'0x{txHash}'
+	# genesis block is 556 bytes, normal blocks are 176 bytes
+	if num == 0:
+		a1, a2 = 224, 600
+		b1, b2 = 600, 664
+	else:
+		a1, a2 = 224, 288
+		b1, b2 = 288, 352
 
-	uncleRoot = BlockHeader[232:296]
+	txHash = BlockHeader[a1:a2]
+
+	if int(num) == 0:
+		txHash = bytes.fromhex(txHash)
+		txHash = txHash.decode('utf-8')
+	else:
+		txHash = f'0x{txHash}'
+
+	uncleRoot = BlockHeader[b1:b2]
 	uncleRoot = f'0x{uncleRoot}'
 
 	headerDecoded = {"version"     : version,
@@ -156,7 +184,9 @@ def DeconstructBlockHeader(BlockHeader: str):
 
 	return headerDecoded
 
-b = ConstructBlockHeader(4, hex(0x89fd), hex(0xf4), 43, 54, 44, 1, hex(0xfd5435), hex(0xc04))
-print(b)
-print(len(b))
-pprint.pprint(DeconstructBlockHeader(b))
+#state = {"alloc":{"0xaae47eae4ddd4877e0ae0bc780cfaee3cc3b52cb":{"balance":"1500000000000000000000000"},"0xaae47eae4ddd4877e0ae0bc780cfaee3cc3b54ab":{"balance":"45000000000000000000000000"}}}
+#json_state = json.dumps(state).encode('utf-8')
+
+#b = ConstructBlockHeader(0, hex(0x89fd), hex(0xf4), 43, 54, 44, 0, '0x' + json_state.hex(), hex(0xc04))
+#print(type(b))
+#pprint.pprint(DeconstructBlockHeader(b))
