@@ -27,6 +27,27 @@ from gemcoin.memory.profiling import *
 from gemcoin.memory.cache_info import *
 from gemcoin.peers.p2perrors import *
 from gemcoin.prompt.color import Color
+
+"""
+VALIDATE CHAIN
+
+Checks if src node is trustworthy (i.e. running a blockchain with sequential blocks that follow the rules of the blockchain)
+  * Starts at index 0, checks if mixhash of block 0 == prev_hash of block 1,
+  * index 1, checks if mixhash of block 1 == prev_hash of block 2,
+  ...
+"""
+def validateHeaderHash(headers):
+	# create a new instance of the headers list
+	copy_bin = [None] * len(headers)
+	for index, x in enumerate(headers):
+		copy_bin[index] = list(headers[index])
+
+	for kv in copy_bin:
+		print(kv)
+	for kv in copy_bin:
+		print(DeconstructBlockHeader(kv[1]))
+
+
 """
 EPHEMERAL PROCESS
 
@@ -101,7 +122,14 @@ def ephemeralProcess() -> list:
 			task_args.append("0")
 			task_args.append("REQUEST_FULL_BLOCKS")
 		else:
-			task_args.append(str(blocknum))
-			task_args.append("REQUEST_BLOCK_UPDATE")
+			ordered_headers = list(db.RangeIter(include_value=True))
+			user_has_valid_chain = validateChain(ordered_headers)
+			if user_has_valid_chain is True:
+				task_args.append(str(blocknum))
+				task_args.append("REQUEST_BLOCK_UPDATE")
 
 	return task_args
+
+"""
+ephemeralProcess()
+"""

@@ -184,9 +184,17 @@ def DeconstructBlockHeader(BlockHeader: str):
 
 	return headerDecoded
 
-#state = {"alloc":{"0xaae47eae4ddd4877e0ae0bc780cfaee3cc3b52cb":{"balance":"1500000000000000000000000"},"0xaae47eae4ddd4877e0ae0bc780cfaee3cc3b54ab":{"balance":"45000000000000000000000000"}}}
-#json_state = json.dumps(state).encode('utf-8')
+"""
+state = {"alloc":{"0xaae47eae4ddd4877e0ae0bc780cfaee3cc3b52cb":{"balance":"1500000000000000000000000"},"0xaae47eae4ddd4877e0ae0bc780cfaee3cc3b54ab":{"balance":"45000000000000000000000000"}}}
+json_state = json.dumps(state).encode('utf-8')
 
-#b = ConstructBlockHeader(0, hex(0x89fd), hex(0xf4), 43, 54, 44, 0, '0x' + json_state.hex(), hex(0xc04))
-#print(type(b))
-#pprint.pprint(DeconstructBlockHeader(b))
+b = ConstructBlockHeader(0, hex(0x89fd), hex(0xf4), 43, 54, 44, 0, '0x' + json_state.hex(), hex(0xc04))
+print(type(b))
+pprint.pprint(DeconstructBlockHeader(b))
+"""
+
+
+
+
+
+
