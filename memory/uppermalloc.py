@@ -27,6 +27,7 @@ from gemcoin.memory.profiling import *
 from gemcoin.memory.cache_info import *
 from gemcoin.peers.p2perrors import *
 from gemcoin.prompt.color import Color
+from gemcoin.memory.utils import *
 
 """
 VALIDATE CHAIN
@@ -104,7 +105,7 @@ def ephemeralProcess() -> list:
 
 		print(f"{Color.GREEN}INFO:{Color.END} Created header cache.")
 
-		block_hash = getBlockHash(GENESIS)
+		block_hash = dhash(GENESIS)
 		task_args.append(block_hash) # append genesis information locally
 
 	elif mode == 'r':

@@ -45,13 +45,13 @@ if p not in sys.path:
 	sys.path.append(p)
 
 from gemcoin.peers.packerfuncs import *
+from gemcoin.memory.utils import *
 
 # FUNCTIONS FOR BLOCK HEADER
 
 # errors
 def typeError(s, index):
 	print(f"{s} is an invalid input for {index}.")
-
 
 # byte and char length
 def byte_length(i: int) -> int:
@@ -64,8 +64,8 @@ def char_byte_length(i: hex) -> int:
 def padhexa(s, bytes_length):
 	return s[2:].zfill(bytes_length*2) # bytes_length*2 represents the bit repr for hex
 
-def formatHeaderInput(s, byte_spec: int, name: str, timestamp=False):
-	if timestamp is True:
+def formatHeaderInput(s, byte_spec: int, name: str, intToString=False):
+	if intToString is True:
 		s = str(s)
 	if isinstance(s, int):
 		if byte_length(s) <= byte_spec and isinstance(s, int):
@@ -193,8 +193,155 @@ print(type(b))
 pprint.pprint(DeconstructBlockHeader(b))
 """
 
+"""
+Transaction struct
+
+A construction of a transaction does the following:
+
+- output of type set {large}
+- {
+	version,
+	workFee,
+	maxWorkFee,
+	timestamp,
+	nonce,
+	fromAddr,
+	toAddr
+	}
+
+workFee <-- F(electricity) (the lower the F(electricity) for sending the transaction, the longer it will take to process the transaction)
+
+"""
+def ConstructTransaction(version, workFee, timestamp, fromAddr, toAddr, value):
+	assert int(version) == 20, "ERROR: Version must match genesis version."
+	# int32_t 4 byte spec and pad
+	version       = formatHeaderInput(version, 4, "version")
+
+	# str(uint256_t) byte spec and pad
+	fees = workFee / (2.226*10**12) # Work to Electric Fee Constant
+	electricFee = formatHeaderInput(fees, 32, "electricFee", True)
+	timestamp     = formatHeaderInput(timestamp, 32, "timestamp", True)
+
+	# addrs
+	if str(fromAddr)[0:1] != '0x':
+		fromAddr = "0x" + str(fromAddr)
+	if str(toAddr)[0:1] != '0x':
+		toAddr   = "0x" + str(toAddr)
+
+	value = str(value) # value input must be in shards
+
+	payload = {
+		"version": version,
+		"workFee": electricFee,
+		"timestamp": timestamp,
+		"fromAddr": fromAddr,
+		"toAddr": toAddr,
+		"value": value
+	}
+
+	return payload
+
+"""
+Mempool
+
+The mempool class:
+Create - If none, create cache
+Read   - Read the latest transactions by key and value
+Update - Append to the mempool (set of sets)
+Delete - Delete a key by value or value by key
+"""
+class Mempool(object):
+	def __init__(self):
+		# the mempool path (fullnode only)
+		self.isMemcacheCreated = self.checkCache("mempool")[0]
+		self.mempoolPath       = self.checkCache("mempool")[1]
+		# the actual blockchain (fullnode only)
+		self.isBlockPathCreated= self.checkCache("Blocks")[0]
+		self.blockPath         = self.checkCache("Blocks")[1]
+
+		# the leveldb database init
+		self.db                = leveldb.LevelDB(self.mempoolPath) # the database with the mempool
+
+	# Create --> Encodes and Puts in LevelDB path
+	def Create(self, key, value):
+		if not isinstance(key, bytes):
+			key = key.encode('utf-8')
+		if not isinstance(value, bytes):
+			value = value.encode('utf-8')
+
+		self.db.Put(key, value)
+
+	# Read   -->  Useful for reading rangeIter
+	def ReadLatestBlockHeader(self):
+		newest = list(self.db.RangeIter(include_value=True, reverse=True))[0]
+		decoded_newest = DeconstructBlockHeader(newest)
+		return decoded_newest
+
+	def ReadOldestBlockHeader(self):
+		oldest = list(self.db.RangeIter(include_value=True, reverse=False))[0]
+		decoded_oldest = DeconstructBlockHeader(oldest)
+		return decoded_oldest
+
+	""" gets total supply in shards; has to find the 0'th index because that is the block reward which determines
+		total supply on the mainnet """
+	def CalculateCoinSupply(self):
+		totalSupply = 0
+		for x in list(self.db.RangeIter(include_value=True, reverse=False)):
+			totalSupply += x["transactions"][0]["value"]
+
+		return totalSupply
+
+	""" creates a cache of type mempool or type headers """
+	def checkCache(self, title: str):
+		# Check if user cache folders exist
+		HOME = os.path.expanduser('~')
+		CACHE_FOLDER = os.path.join(HOME, 'Library')
+		if os.path.exists(CACHE_FOLDER) is False:
+			raise OSError("User must be using a generic path.")
+
+		CACHE_LOCATION = os.path.join(CACHE_FOLDER, "Gemcoin")
+		if os.path.exists(CACHE_LOCATION) is False:
+			os.mkdir(CACHE_LOCATION)
+
+		LOCATION = os.path.join(CACHE_LOCATION, str(title))
+		if os.path.exists(LOCATION) is False:
+			os.mkdir(LOCATION)
+			mode = "w"
+		elif os.path.exists(LOCATION) is True:
+			mode = "r"
+
+		if mode == 'w':
+			print("Please sync with peers and gather a list of transactions before trying to access mempool resources.")
+			return [False, LOCATION]
+		elif mode == 'r':
+			return [True, LOCATION]
+
+"""
+Block
+
+Inputs are the "constructed" block header and the list of transactions including the block reward as a fromAddr -> fromAddr transaction w/ nLockTime None. TODO: Add an nLockTime to the JSON.
+
+takes in the block header, deconstructs it and puts it in JSON format, and appends transaction list to the txList. Gives the tx list a txroot hash.
+"""
+def ConstructBlock(header: str, transactions: list):
+	# deconstruct the header with the new nonce
+	deconstructed_header = DeconstructBlockHeader(header)
+
+	# add the hashed transaction (each transaction is hashed and appended) to the txList and alter the txHash from the input
+	hexlified_transactions = [hex(int(binascii.hexlify(str(x).encode('utf-8')), 16)) for x in transactions]
+	deconstructed_header["transactions"] = hexlified_transactions # each transaction is {"fromAddr": 0xasdfadfsa, ... "value": 100}, ..
+	deconstructed_header["txHash"]       = merkle_hash(transactions)
+
+	return deconstructed_header
 
 
+# EXAMPLE
+"""
+blockheader = ConstructBlockHeader(20, hex(0), hex(54354354354), 5435435435, 1, 45435, 4, hex(0), hex(43543))
+transaction1 = ConstructTransaction(20, 23, 2341, "0xdf4a", "daa43aaa", 200)
+transaction2 = ConstructTransaction(20, 25, 235431, "0xdffdaaa", "daa43aaaaaa", 24550)
 
-
-
+transaction_dump = [json.dumps(transaction1), json.dumps(transaction2)]
+block = ConstructBlock(blockheader, transaction_dump)
+pprint.pprint(block)
+"""
