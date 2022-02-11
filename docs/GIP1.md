@@ -4,5 +4,5 @@ Simplify the blockchain in the most efficient way possible through compression t
 
 ## Proposals
 
-- Distributed Digital Land System (DDLS) --> Buy a country's land with gemcoins. Land plots and tax are listed on the ledger. Tax is responsible for funding the system (the electric fee).
-
+- Digital land (NFT) system
+	* Can be done through bytecode

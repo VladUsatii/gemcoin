@@ -35,9 +35,15 @@ import sys, os, math
 import fixedint
 import struct
 import json
+from operator import itemgetter
 
 # not for production
 import pprint
+
+try:
+	import leveldb
+except Exception:
+	print("You do not have leveldb installed. \'pip install leveldb\' to install with pip.") 
 
 # import functions from parent
 p = os.path.abspath('../..')
@@ -46,6 +52,7 @@ if p not in sys.path:
 
 from gemcoin.peers.packerfuncs import *
 from gemcoin.memory.utils import *
+from gemcoin.prompt.color import *
 
 # FUNCTIONS FOR BLOCK HEADER
 
@@ -97,6 +104,7 @@ def ConstructBlockHeader(version: int, previous_hash: hex, mix_hash: hex, timest
 
 	# char[32] spec and pad
 	previous_hash = formatHeaderInput(previous_hash, 32, "previous_hash")
+
 	mix_hash      = formatHeaderInput(mix_hash, 32, "mix_hash")
 
 	# str(uint256_t) byte spec and pad
@@ -108,10 +116,12 @@ def ConstructBlockHeader(version: int, previous_hash: hex, mix_hash: hex, timest
 	num           = formatHeaderInput(num, 4, "num")
 
 	# char[32] spec and pad
+	"""
 	if int(num) == 0:
 		txHash    = formatHeaderInput(txHash, 188, "genesisConfigTxHash")
 	else:
-		txHash    = formatHeaderInput(txHash, 32, "txHash")
+	"""
+	txHash    = formatHeaderInput(txHash, 32, "txHash")
 
 	# if another node finds the block at the same exact time as you, whoever did more work gets 3/4ths of the reward. uncleRoot = unclePubKey + electricityConstant
 	uncleRoot     = formatHeaderInput(uncleRoot, 32, "uncleRoot")
@@ -119,12 +129,14 @@ def ConstructBlockHeader(version: int, previous_hash: hex, mix_hash: hex, timest
 	fixedIndex = version + previous_hash + mix_hash + timestamp + targetEncoded + nonce + num + txHash + uncleRoot
 
 	# check if genesis, if so, change fixed width
+	"""
 	if int(num) == 0:
 		if len(fixedIndex) == 664:
 			return fixedIndex
 	else:
-		if len(fixedIndex) == 352:
-			return fixedIndex
+	"""
+	if len(fixedIndex) == 352:
+		return fixedIndex
 
 """
 DeconstructBlockHeader
@@ -154,20 +166,24 @@ def DeconstructBlockHeader(BlockHeader: str):
 	num = int(f'0x{num}', 16)
 
 	# genesis block is 556 bytes, normal blocks are 176 bytes
+	"""
 	if num == 0:
 		a1, a2 = 224, 600
 		b1, b2 = 600, 664
 	else:
-		a1, a2 = 224, 288
-		b1, b2 = 288, 352
+	"""
+	a1, a2 = 224, 288
+	b1, b2 = 288, 352
 
 	txHash = BlockHeader[a1:a2]
 
+	"""
 	if int(num) == 0:
 		txHash = bytes.fromhex(txHash)
 		txHash = txHash.decode('utf-8')
 	else:
-		txHash = f'0x{txHash}'
+	"""
+	txHash = f'0x{txHash}'
 
 	uncleRoot = BlockHeader[b1:b2]
 	uncleRoot = f'0x{uncleRoot}'
@@ -218,7 +234,7 @@ def ConstructTransaction(version, workFee, timestamp, fromAddr, toAddr, value):
 	version       = formatHeaderInput(version, 4, "version")
 
 	# str(uint256_t) byte spec and pad
-	fees = workFee / (2.226*10**12) # Work to Electric Fee Constant
+	fees = int(workFee) # Work to Electric Fee Constant
 	electricFee = formatHeaderInput(fees, 32, "electricFee", True)
 	timestamp     = formatHeaderInput(timestamp, 32, "timestamp", True)
 
@@ -241,57 +257,113 @@ def ConstructTransaction(version, workFee, timestamp, fromAddr, toAddr, value):
 
 	return payload
 
-"""
-Mempool
 
-The mempool class:
-Create - If none, create cache
-Read   - Read the latest transactions by key and value
-Update - Append to the mempool (set of sets)
-Delete - Delete a key by value or value by key
-"""
-class Mempool(object):
-	def __init__(self):
+
+
+class Cache(object):
+	def __init__(self, typeOfPath):
+		if typeOfPath in ['mempool', 'headers', 'blocks']:
+			self.pathType = typeOfPath
+		else:
+			print(f"{Color.RED}PANIC:{Color.END} Invalid cache.")
+			sys.exit()
+
+		self.cache = self.checkCache(typeOfPath)
+		self.isCacheCreated = self.cache[0]
+		self.cachePATH = self.cache[1]
+
+		self.DB = leveldb.LevelDB(self.cachePATH)
+
+		"""
 		# the mempool path (fullnode only)
-		self.isMemcacheCreated = self.checkCache("mempool")[0]
-		self.mempoolPath       = self.checkCache("mempool")[1]
-		# the actual blockchain (fullnode only)
-		self.isBlockPathCreated= self.checkCache("Blocks")[0]
-		self.blockPath         = self.checkCache("Blocks")[1]
+		if self.pathType == "mempool":
+			self.mem = self.checkCache("mempool")
+			self.isMemcacheCreated = self.mem[0]
+			self.mempoolPath       = self.mem[1]
 
-		# the leveldb database init
-		self.db                = leveldb.LevelDB(self.mempoolPath) # the database with the mempool
+			self.memdb             = leveldb.LevelDB(self.mempoolPath) # the database w mempool
+
+		# the block header path (lightnodes)
+		elif self.pathType == "headers":
+			self.headers = self.checkCache("headers")
+			self.isHeadersCreated  = self.headers[0]
+			self.headersPath       = self.headers[1]
+
+			self.headersdb         = leveldb.LevelDB(self.headersPath) # the database w block headers
+
+		# the actual blockchain (fullnode only)
+		elif self.pathType == "blocks":
+			self.blocks = self.checkCache("blocks")
+			self.isBlockPathCreated= self.blocks[0]
+			self.blockPath         = self.blocks[1]
+
+			self.blockdb           = leveldb.LevelDB(self.blockPath) # the database w blocks in raw
+
+		else:
+			print("Not a valid type of path. Must be a Gemcoin cache file (e.g. mempool, headers, blocks).")
+		"""
+
+	def readFullDB(self, reverse=True) -> list: # of lists
+		listed = list(self.DB.RangeIter(include_value=True, reverse=reverse))
+		copy_list = [[bytes(x[0]).decode('utf-8'), DeconstructBlockHeader(bytes(x[1]).decode('utf-8'))] for x in listed]
+		return copy_list
+
+	def readTransactions(self, reverse=True) -> list: # of dicts
+		listed = list(self.DB.RangeIter(include_value=True, reverse=reverse))
+		copy_list = [json.loads(bytes(x[1])) for x in listed]
+		return copy_list
 
 	# Create --> Encodes and Puts in LevelDB path
-	def Create(self, key, value):
+	def Create(self, key, value, DB):
 		if not isinstance(key, bytes):
 			key = key.encode('utf-8')
 		if not isinstance(value, bytes):
 			value = value.encode('utf-8')
 
-		self.db.Put(key, value)
+		DB.Put(key, value)
 
-	# Read   -->  Useful for reading rangeIter
-	def ReadLatestBlockHeader(self):
-		newest = list(self.db.RangeIter(include_value=True, reverse=True))[0]
-		decoded_newest = DeconstructBlockHeader(newest)
-		return decoded_newest
+	""" DB MUST BE MEMPOOL FOR THE FOLLOWING """
+	def ReadLatestMempool(self):
+		return self.readTransactions()[0]
 
-	def ReadOldestBlockHeader(self):
-		oldest = list(self.db.RangeIter(include_value=True, reverse=False))[0]
-		decoded_oldest = DeconstructBlockHeader(oldest)
-		return decoded_oldest
+	def ReadOldestMempool(self):
+		return self.readFullDB(reverse=False)[0][1]
 
-	""" gets total supply in shards; has to find the 0'th index because that is the block reward which determines
+	def GetBiggestTransactions(self):
+		transactions = self.readTransactions()
+		for x in transactions:
+			x['workFee'] = int(x['workFee'])
+		newlist = sorted(transactions, key=itemgetter('workFee'), reverse=True)
+		return newlist
+
+	""" DB MUST BE HEADERS FOR THE FOLLOWING """
+	""" Read block header data (decodes it into JSON) """
+	def ReadLatestHeaders(self):
+		return self.readFullDB()[0]
+
+	def ReadOldestHeaders(self):
+		num    = int(self.readFullDB(reverse=False)[0])
+		header = self.readFullDB(reverse=False)[1]
+		return [num, header]
+
+	""" DB MUST BE BLOCK FOR THE FOLLOWING """
+	""" Read block data (raw/decoded already) """
+	def ReadLatestBlock(self):
+		return list(self.DB.RangeIter(include_value=True, reverse=True))[0]
+
+	def ReadOldestBlock(self):
+		return list(self.DB.RangeIter(include_value=True, reverse=False))[0]
+
+	""" gets total supply in shards; has to find the 0 index because that is the block reward which determines
 		total supply on the mainnet """
 	def CalculateCoinSupply(self):
 		totalSupply = 0
-		for x in list(self.db.RangeIter(include_value=True, reverse=False)):
-			totalSupply += x["transactions"][0]["value"]
+		for x in list(self.DB.RangeIter(include_value=True, reverse=False)):
+			totalSupply += int(x["transactions"][0]["value"])
 
 		return totalSupply
 
-	""" creates a cache of type mempool or type headers """
+	""" must be mempool, headers, or blocks """
 	def checkCache(self, title: str):
 		# Check if user cache folders exist
 		HOME = os.path.expanduser('~')
@@ -311,10 +383,13 @@ class Mempool(object):
 			mode = "r"
 
 		if mode == 'w':
-			print("Please sync with peers and gather a list of transactions before trying to access mempool resources.")
+			# False == Node will do complete sync
 			return [False, LOCATION]
 		elif mode == 'r':
+			# True == Node will pick up where it left off
 			return [True, LOCATION]
+
+
 
 """
 Block
@@ -334,9 +409,10 @@ def ConstructBlock(header: str, transactions: list):
 
 	return deconstructed_header
 
-
-# EXAMPLE
 """
+m = Cache("mempool")
+s = Cache("headers")
+
 blockheader = ConstructBlockHeader(20, hex(0), hex(54354354354), 5435435435, 1, 45435, 4, hex(0), hex(43543))
 transaction1 = ConstructTransaction(20, 23, 2341, "0xdf4a", "daa43aaa", 200)
 transaction2 = ConstructTransaction(20, 25, 235431, "0xdffdaaa", "daa43aaaaaa", 24550)
@@ -345,3 +421,5 @@ transaction_dump = [json.dumps(transaction1), json.dumps(transaction2)]
 block = ConstructBlock(blockheader, transaction_dump)
 pprint.pprint(block)
 """
+#c1 = Cache("mempool")
+#pprint.pprint(c1.GetBiggestTransactions())

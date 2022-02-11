@@ -30,54 +30,101 @@ from gemcoin.prompt.color import Color
 from gemcoin.memory.utils import *
 
 """
-VALIDATE CHAIN
-
-Checks if src node is trustworthy (i.e. running a blockchain with sequential blocks that follow the rules of the blockchain)
-  * Starts at index 0, checks if mixhash of block 0 == prev_hash of block 1,
-  * index 1, checks if mixhash of block 1 == prev_hash of block 2,
-  ...
-"""
-def validateHeaderHash(headers):
-	# create a new instance of the headers list
-	copy_bin = [None] * len(headers)
-	for index, x in enumerate(headers):
-		copy_bin[index] = list(headers[index])
-
-	for kv in copy_bin:
-		print(kv)
-	for kv in copy_bin:
-		print(DeconstructBlockHeader(kv[1]))
-
-
-"""
 EPHEMERAL PROCESS
 
 Ensures computer state is updated, secure, cached, and there are sufficient data requirements. Any errors will result in a program PANIC. Returns list of task arguments for future reference.
 """
 @AVG_ACTIONIO(1)
 def ephemeralProcess() -> list:
-	# Arguments to pass to main.py
+
 	# [PROCESS_CALL, CURRENT_NUM_OF_BLOCKS (key), RECENT_BLOCK_HASH]
 	task_args = []
 
-	# Check if user is using Macintosh (Darwin)
+	""" Computer version checks """
+
+	# Check if using Darwin
 	if platform.system() != 'Darwin':
 		raise OSError("MacOS is Gemcoin's only supported OS as of GP1.")
 
-	# Check if user is using supported Macintosh version (20.0.0)
+	# Check if using supported Macintosh version (20.0.0)
 	compvers = platform.release().split(".")[0]
 	if int(compvers) < 15:
 		raise OSError("MacOS must be updated to at least 15.0.0 to access Gemcoin.")
 	elif int(compvers) == 15:
 		print("Gemcoin recommends users to update their computers to the latest version. Our minimum supported version is 15.0.0 and will be obsolete in the next update.")
 
-	# Check if user has sufficient data to make a chain
+	# Check if user has sufficient data to make 3 caches
 	total, used, free = convertToGb(freeDiskSpace())
-	if int(free) < 15 + 1:
+	if int(free) < 32:
 		HardDiskError()
 		raise MemoryError("Critically low space on machine.")
 
+	"""
+	Arguments for Gemcoin VM
+
+	bools: [emptyMempool, emptyHeaders, emptyBlocks]
+	"""
+	userConfig = []
+
 	# Check if user cache folders exist
+
+	memcache = Cache("mempool")
+	if memcache.isCacheCreated is False:
+		userConfig.append(False)
+	else:
+		userConfig.append(True)
+
+	headercache = Cache("headers")
+	if headercache.isCacheCreated is False:
+		userConfig.append(False)
+	else:
+		userConfig.append(True)
+
+	blockcache = Cache("blocks")
+	if blockcache.isCacheCreated is False:
+		userConfig.append(False)
+	else:
+		userConfig.append(True)
+
+	print(f"{Color.GREEN}INFO:{Color.END} Initialized cache state.")
+
+	"""
+	Handling the Current Block in Cache
+	"""
+
+	# If header file is empty
+	if userConfig[1] == False:
+
+		GENESIS_HEADER = str(Common.Genesis().constructHeader()).encode('utf-8')
+		headercache.Create("0".encode('utf-8'), GENESIS_HEADER, headercache.DB)
+
+		print(f"{Color.GREEN}INFO:{Color.END} Created genesis header.")
+
+		task_args = ["REQUEST_FULL_BLOCKS", "0", GENESIS_HEADER.decode('utf-8')]
+
+	# If header file is full
+	elif userConfig[1] == True or userConfig[2] == True:
+		latest_header     = headercache.ReadLatestHeaders()
+		latest_block_num  = str(latest_header[0])
+		latest_block_hash = str(latest_header[1])
+
+		task_args = ["SYNC_BLOCKS", latest_block_num, latest_block_hash]
+
+	#close(headercache.DB, headercache.cachePATH)
+	# re-init the cache
+
+	# If block file is empty
+	if userConfig[2] == False:
+		GENESIS_TRANSACTION = list(ConstructTransaction(20, 0, 1644394160, "0x77dca013986bdfcee6033cac4a0b12b494171b61", "0x77dca013986bdfcee6033cac4a0b12b494171b61", 60000000000000000000000000))
+		GENESIS_BLOCK = ConstructBlock(GENESIS_HEADER, GENESIS_TRANSACTION)
+
+		blockcache.Create("0".encode('utf-8'), GENESIS_BLOCK.encode('utf-8'), blockcache.DB)
+
+		print(f"{Color.GREEN}INFO:{Color.END} Created genesis block.")
+	#close(blockcache.DB, blockcache.cachePATH)
+
+	# useless junk code
+	"""
 	HOME = os.path.expanduser('~')
 	CACHE_FOLDER = os.path.join(HOME, 'Library')
 	if os.path.exists(CACHE_FOLDER) is False:
@@ -128,9 +175,5 @@ def ephemeralProcess() -> list:
 			if user_has_valid_chain is True:
 				task_args.append(str(blocknum))
 				task_args.append("REQUEST_BLOCK_UPDATE")
-
+	"""
 	return task_args
-
-"""
-ephemeralProcess()
-"""

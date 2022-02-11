@@ -47,7 +47,9 @@ To join the peer-to-peer server:
 ```bash
 >>> git clone 'https://www.github.com/VladUsatii/gemcoin'
 >>> cd gemcoin
->>> bash setup.sh
+>>> # bash setup.sh # in production
+>>> chmod +x main.py
+>>> ./main.py # right now, this is what you run
 ```
 
 To make a private key and submit it to the chain:
@@ -59,7 +61,7 @@ To make a private key and submit it to the chain:
 To listen on a gem network:
 
 ```bash
->>> gemcoin [ net port number ]
+>>> gemcoin [ net port number ] # not functional at the moment
 Listening on [ net type (e.g. mainnet) ] . . .
 ```
 
@@ -77,7 +79,8 @@ Ported languages so far are listed here:
 
 ## TODO
 
-Set up a block format and private keygen.
+Debug and audit my code
+Add some new classes to peek at the blocks from Library/Gemcoin folder
 
 ---
 
