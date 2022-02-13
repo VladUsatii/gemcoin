@@ -20,6 +20,7 @@ if p not in sys.path:
 
 from gemcoin.peers.packerfuncs import *
 from gemcoin.memory.block import *
+from gemcoin.memory.utils import *
 
 """
 GETBLOCKHASH
@@ -66,7 +67,7 @@ class Common:
 			self.targetEncoded = 0x0300 # easiest mineable block (1/768 operations will be a successful block creation)
 			self.nonce = 0x00
 			self.num = 0
-			self.txHash = self.configGenesisPrefork()
+			self.txHash = hex(0x0)
 			self.uncleHash = hex(0x0)
 
 		def constructHeader(self):

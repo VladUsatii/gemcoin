@@ -97,6 +97,7 @@ def ephemeralProcess() -> list:
 	if userConfig[1] == False:
 
 		GENESIS_HEADER = str(Common.Genesis().constructHeader()).encode('utf-8')
+
 		headercache.Create("0".encode('utf-8'), GENESIS_HEADER, headercache.DB)
 
 		info("Created genesis header.")
@@ -113,10 +114,10 @@ def ephemeralProcess() -> list:
 
 	# If block file is empty, create Genesis block
 	if userConfig[2] == False:
-		GENESIS_TRANSACTION = list(ConstructTransaction(20, 0, 1644394160, "0x77dca013986bdfcee6033cac4a0b12b494171b61", "0x77dca013986bdfcee6033cac4a0b12b494171b61", 60000000000000000000000000))
-		GENESIS_BLOCK = ConstructBlock(GENESIS_HEADER, GENESIS_TRANSACTION)
+		GENESIS_TRANSACTION = list({0: ConstructTransaction(20, 0, 1644394160, "0x77dca013986bdfcee6033cac4a0b12b494171b61", "0x77dca013986bdfcee6033cac4a0b12b494171b61", 60000000000000000000000000)})
+		GENESIS_BLOCK = ConstructBlock(GENESIS_HEADER.decode('utf-8'), GENESIS_TRANSACTION)
 
-		blockcache.Create("0".encode('utf-8'), GENESIS_BLOCK.encode('utf-8'), blockcache.DB)
+		blockcache.Create("0".encode('utf-8'), json.dumps(GENESIS_BLOCK).encode('utf-8'), blockcache.DB)
 
 		info("Created genesis block.")
 
