@@ -1,0 +1,4 @@
+set MaxPeerCount to 24
+set MinPeerCount to 0
+set ElectricCap  to 50
+set NodeType     to 0

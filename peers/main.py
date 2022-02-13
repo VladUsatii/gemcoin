@@ -16,6 +16,7 @@ import json
 
 from node import Node
 from p2pmath import *
+from constants import *
 from p2perrors import *
 from serialization import *
 from packerfuncs import *
@@ -25,9 +26,9 @@ p = os.path.abspath('../..')
 if p not in sys.path:
 	sys.path.append(p)
 
-#from gemcoin.symmetric import AES_exchange
 from gemcoin.symmetric import AES_byte_exchange
 from gemcoin.prompt.color import Color
+from gemcoin.prompt.errors import *
 
 # memory & disk alloc/handling
 from gemcoin.memory.uppermalloc import *
@@ -185,12 +186,7 @@ class srcNode(Node):
 		super(srcNode, self).__init__(host, port, id, callback, max_connections)
 		self.MASTER_DEBUG = True
 
-	"""
-	OUTBOUND NODE CONNECTED
-
-	Checks if node versions are the same. If not, a fork is theoretically created. If they are, a session key is returned and state/block discovery are synced and started.
-	"""
-	def outbound_node_connected(self, node):
+	def node_connected(self, node):
 		print(f"{node.id}")
 		# catch outbound node connection errors
 		try:
@@ -198,8 +194,8 @@ class srcNode(Node):
 				self.node_disconnect_with_outbound_node(node)
 				NodeIncompatibilityError()
 		except IndexError:
-			NodeIncompatibilityError()
 			self.node_disconnect_with_outbound_node(node)
+			NodeIncompatibilityError()
 
 		# create session AES key, creates a secure channel
 		session_dhkey = self.dhkey(node.id[0], self.id[1])
@@ -225,14 +221,20 @@ class srcNode(Node):
 		# creation of an instance
 		validation_instance = Validate(update, self, node)
 
-
-
 		if validation_instance.src_blockchain == 0 or validation_instance.src_blockchain == None:
 			validation_instance.send_all_blocks()
 			# link somewhere to wait (e.g. time sleep)
 		elif len(validation_instance.send_all_blocks()) > 0:
 			validation_instance.request_block_update()
 			# link somewhere to wait (e.g. time sleep)
+
+	"""
+	OUTBOUND NODE CONNECTED
+
+	Checks if node versions are the same. If not, a fork is theoretically created. If they are, a session key is returned and state/block discovery are synced and started.
+	"""
+	def outbound_node_connected(self, node):
+		node_connected(self, node)
 
 	"""
 	INBOUND NODE CONNECTED
@@ -240,38 +242,7 @@ class srcNode(Node):
 	Checks if node versions are the same. If not, a fork is theoretically created. If they are, a session key is returned and state/block discovery are synced and started.
 	"""
 	def inbound_node_connected(self, node):
-		try:
-			if node.id[2] != self.id[2]:
-				self.node_disconnect_with_outbound_node(node)
-				NodeIncompatibilityError()
-		except IndexError:
-			NodeIncompatibilityError()
-			self.node_disconnect_with_outbound_node(node)
-
-		self.verackSwitch(node, node.id[2])
-
-		# save the REAL peer to the peercache
-		with dbm.open('peercache/localpeers', 'c') as db:
-			# map private ip to port number
-			db[node.host] = str(node.port)
-			print("Trustworthy node has been added to the peercache.")
-
-		# create session AES key, creates a secure channel
-		session_dhkey = self.dhkey(node.id[0], self.id[1])
-		if self.MASTER_DEBUG == True:
-			print(f"\n\n{session_dhkey}\n\n")
-		print("(InboundNodeConnection) Connected to a gemcoin peer. Attempting time sync and block state discovery.")
-
-		# p2p ping/pong class instance will be called in the validation process
-		update = p2p(session_dhkey, self, node)
-		validation_instance = Validate(update, self, node)
-
-		if validation_instance.src_blockchain == 0 or validation_instance.src_blockchain == None:
-			validation_instance.send_all_blocks()
-			# link somewhere to wait (e.g. time sleep)
-		elif len(validation_instance.send_all_blocks()) > 0:
-			validation_instance.request_block_update()
-			# link somewhere to wait (e.g. time sleep)
+		node_connected(self, node)
 
 	def inbound_node_disconnected(self, node):
 		print("(InboundNodeError) Disconnected from peer.")
@@ -413,6 +384,15 @@ userProvidedSeeds = None
 rs = RemoteSearch(userProvidedSeeds)
 
 
+"""
+Bootstrap Node
+
+Search for a node that has a very high uptime as evidenced by reading the ID.
+"""
+# TODO: Restructure the ID to include evidenceHash (hash of uptime, blocknumber, etc.)
+# TODO: Find a node in close proximity with Kademlia-like implementation
+
+
 
 
 """
@@ -424,11 +404,29 @@ TODO: Add the sys argv to the docs and create a client
 
 """
 def main():
-	task_args = ephemeralProcess() # [PROCESS_CALL, CURRENT_NUM_OF_BLOCKS, RECENT_BLOCK_HASH]
+	# present constants that can be set in the settings file
+	constants = showConstants()
+	printConstants(constants)
 
-	IP = socket.gethostbyname(socket.gethostname())
+	# check caches and put arguments in the Node class
+	task_args = ephemeralProcess()
+
+	# PROCESS_CALL
+	PROCESS_CALL = task_args[0]
+	# latest block
+	latest_block_number = int(task_args[1])
+	latest_block_hash   = task_args[2]
+
+	# init the socket
+	#IP = socket.gethostbyname(socket.gethostname())
 	src_node = srcNode(IP, 1513)
 	src_node.start()
+
+	if PROCESS_CALL == "REQUEST_FULL_BLOCKS" or latest_block_number == 0:
+		# contact an extremely trustworthy node in close proximity and request full block download
+		# TODO: Write this
+		#bootstrapNode(src_node)
+		pass
 
 	""" LOCAL SEED """
 
@@ -440,6 +438,7 @@ def main():
 			while k is not None:
 				print(f'{k} is a trusted node. Connecting. . .')
 				try:
+					src_node.addTask(task_args)
 					src_node.connect_with_node(str(k), 1513)
 				except KeyboardInterrupt:
 					break
@@ -452,6 +451,7 @@ def main():
 	IPs = localAddresses()
 	for lIP in IPs:
 		try:
+			src_node.addTask(task_args)
 			src_node.connect_with_node(lIP, 1513)
 		except:
 			continue

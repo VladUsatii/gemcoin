@@ -20,6 +20,7 @@ if p not in sys.path:
 	sys.path.append(p)
 
 from gemcoin.prompt.color import Color
+from gemcoin.prompt.errors import *
 # from gemcoin.symmetric import AES_exchange
 from gemcoin.symmetric import AES_byte_exchange
 from gemcoin.wallet.keygenerator import Wallet
@@ -37,6 +38,8 @@ class Node(threading.Thread):
 		# FLAGS
 		self.TERMINATE = threading.Event()
 
+		self.task_args = []
+
 		self.host = host
 		self.port = port
 		self.callback = callback
@@ -44,6 +47,10 @@ class Node(threading.Thread):
 		self.nodes_inbound = []  # Nodes that are connect with us N->(US)
 		self.nodes_outbound = []  # Nodes that we are connected to (US)->N
 		self.reconnect_to_nodes = []
+
+		self.connected = len(self.nodes_inbound) + len(self.nodes_outbound)
+		self.tried     = 0
+		self.banned    = 0
 
 		if id == None:
 			self.id = self.dhke()
@@ -72,7 +79,11 @@ class Node(threading.Thread):
 		return self.nodes_inbound + self.nodes_outbound
 
 	def debug_print(self, message):
-		if self.debug: print(f"{Color.GREEN}INFO:{Color.END} (" + self.node_num + "): " + message)
+		if self.debug:
+			info(f"({self.node_num}) {message}")
+
+	def addTask(self, tasks: list):
+		self.task_args += tasks
 
 	def node_type(self):
 		try:
@@ -116,8 +127,8 @@ class Node(threading.Thread):
 					# append public key to ID
 					basic_id.append(full_pub_addr)
 
-					print(f"{Color.GREEN}INFO:{Color.END} (DHKey) {basic_id[0]}                                    {Color.GREEN}INFO:{Color.END} (DHKeyOutput) {basic_id[1]}")
-					print(f"{Color.YELLOW}VERSION:{Color.END} {basic_id[2]}   {Color.GREEN}INFO:{Color.END} (PublicAddress) {full_pub_addr}")
+					print(info(f"(DHKey) {basic_id[0]}", returner=True) + "     " + info(f"(DHKeyOutput) {basic_id[1]}", returner=True))
+					print(version(str(basic_id[2])[:8] + "..", returner=True)           + "                  " + info(f"(PublicAddress) {full_pub_addr}", returner=True))
 		else:
 			print(f"{Color.RED}PANIC{Color.END}: You don't have a private key.")
 
@@ -195,7 +206,7 @@ class Node(threading.Thread):
 
 		try:
 			sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-			self.debug_print("connecting to %s port %s" % (host, port))
+			#self.debug_print("connecting to %s port %s" % (host, port))
 			sock.connect((host, port))
 
 			#encoded_id = [x.encode('utf-8') for x in self.id]
@@ -241,10 +252,12 @@ class Node(threading.Thread):
 			"""
 			return thread_client
 		except ConnectionRefusedError:
-			self.debug_print("TcpServer.connect_with_node: Can't establish a communication with an idle node.")
+			self.tried += 1
+			info(f"Connecting to nearby peers               {Color.GREEN}connected{Color.END}={self.connected} {Color.GREEN}attempted{Color.END}={self.tried} {Color.GREEN}banned{Color.END}={self.banned}")
+			#self.debug_print("TcpServer.connect_with_node: Can't establish a communication with an idle node.")
 			return False
 		except Exception as e:
-			self.debug_print("TcpServer.connect_with_node: Could not connect with node. (" + str(e) + ")")
+			#self.debug_print("TcpServer.connect_with_node: Could not connect with node. (" + str(e) + ")")
 			return False
 
 	def disconnect_with_node(self, node):
@@ -337,6 +350,7 @@ class Node(threading.Thread):
 		print("Node stopped")
 
 	def outbound_node_connected(self, node):
+		self.connected += 1
 		self.debug_print("outbound_node_connected: " + self.node_num)
 		if self.callback is not None:
 			self.callback("outbound_node_connected", self, node, {})
