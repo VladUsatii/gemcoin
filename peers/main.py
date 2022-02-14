@@ -201,19 +201,21 @@ class srcNode(Node):
 		session_dhkey = self.dhkey(node.id[0], self.id[1])
 		if self.MASTER_DEBUG == True:
 			print(f"\n\n{session_dhkey}\n\n")
-		print("(OutboundNodeConnection) Connected to a gemcoin peer. Attempting time sync and block state discovery.")
+		info("Connected to a gemcoin peer. Attempting sync.")
 
 		# save the REAL peer to the peercache
 		with dbm.open('peercache/localpeers', 'c') as db:
 			# map private ip to port number
 			db[node.host] = str(node.port)
-			print("Trustworthy node has been added to the peercache.")
+			info("Trustworthy node has been added to the peercache.")
 
+		"""
 		# create session AES key, creates a secure channel
 		session_dhkey = self.dhkey(node.id[0], self.id[1])
 		if self.MASTER_DEBUG == True:
 			print(f"\n\n{session_dhkey}\n\n")
 		print("(InboundNodeConnection) Connected to a gemcoin peer. Attempting time sync and block state discovery.")
+		"""
 
 		# class instance to continue or discontinue communications
 		update = p2p(session_dhkey, self, node)
@@ -234,7 +236,7 @@ class srcNode(Node):
 	Checks if node versions are the same. If not, a fork is theoretically created. If they are, a session key is returned and state/block discovery are synced and started.
 	"""
 	def outbound_node_connected(self, node):
-		node_connected(self, node)
+		self.node_connected(self, node)
 
 	"""
 	INBOUND NODE CONNECTED
@@ -242,7 +244,7 @@ class srcNode(Node):
 	Checks if node versions are the same. If not, a fork is theoretically created. If they are, a session key is returned and state/block discovery are synced and started.
 	"""
 	def inbound_node_connected(self, node):
-		node_connected(self, node)
+		self.node_connected(self, node)
 
 	def inbound_node_disconnected(self, node):
 		print("(InboundNodeError) Disconnected from peer.")
@@ -446,6 +448,8 @@ def main():
 					continue
 				k = db.nextkey(k)
 
+	interrupts = 0
+
 	""" LOCAL SEARCH """
 
 	IPs = localAddresses()
@@ -454,6 +458,11 @@ def main():
 			src_node.addTask(task_args)
 			src_node.connect_with_node(lIP, 1513)
 		except:
+			interrupts += 1
+			if interrupts < 10:
+				warning(f"Panic more to force quit.   {Color.YELLOW}attempts{Color.END}={interrupts}")
+			else:
+				sys.exit(0)
 			continue
 
 	""" REMOTE SEARCH """
