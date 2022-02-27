@@ -30,15 +30,17 @@ Gas fees are too expensive and are the reason that many dApps cease to exist. Cu
 
 ## Current Ports
 
-| Port Number	| Port Type	|
-| ------------- | --------- |
-| 1513			| Mainnet	|
-| 1514			| Testnet 1	|
-| 1515			| Testnet 2	|
-| 1516			| Testnet 3	|
+| Port Number	| Port Type	| Magic Number |
+| ------------- | --------- | ------------ |
+| 1513			| Mainnet	| 0x3039       |
+| 1514			| Testnet 1	| 0x12fd1      |
+| 1515			| Testnet 2	| 0x15b38      |
+| 1516			| Testnet 3	| 0x1869f      |
 
 **Mainnet** --> A mainnet is the biggest hive-mind of computers.
 **Testnets** --> A testnet is a local test of the hive-mind for applications. The test-net clears up every day to allow experimentation without consequence.
+
+**Magic number** --> To connect to a "net" (a group of consenting nodes), you need to know which network is being initiated. A magic number specifies which group of nodes you are accepting.
 
 ## Config ⚙️
 
@@ -56,13 +58,6 @@ To make a private key and submit it to the chain:
 
 ```bash
 >>> python3 add_key.py [ priv_key ] # the key can be generated in the 'wallet' folder
-```
-
-To listen on a gem network:
-
-```bash
->>> gemcoin [ net port number ] # not functional at the moment
-Listening on [ net type (e.g. mainnet) ] . . .
 ```
 
 ## Versions

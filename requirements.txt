@@ -10,3 +10,5 @@ sha3==0.2.1
 pycryptodomex==3.12.0
 plyvel==1.3.0
 fixedint==0.1.6
+eth-rlp==0.2.1
+rlp==2.0.1

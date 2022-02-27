@@ -29,9 +29,6 @@ class Node(threading.Thread):
 	def __init__(self, host, port, id=None, callback=None, max_connections=0):
 		super(Node, self).__init__()
 
-		# session established, versions are sent and compared:
-		# if true, return block headers
-		# if false, disconnect (incompatible peer error) (false by default)
 		self.VERSION = self.git_revision_hash()
 		self.VERACK = False
 
@@ -51,6 +48,9 @@ class Node(threading.Thread):
 		self.connected = len(self.nodes_inbound) + len(self.nodes_outbound)
 		self.tried     = 0
 		self.banned    = 0
+
+		# attempts to quit
+		self.attempted = 0
 
 		if id == None:
 			self.id = self.dhke()
@@ -81,6 +81,13 @@ class Node(threading.Thread):
 	def debug_print(self, message):
 		if self.debug:
 			info(f"({self.node_num}) {message}")
+
+	def incrementAttempts(self, increment: int):
+		self.attempted += increment
+		if self.attempted < 10:
+			warning(f"Panic more to force quit.   {Color.YELLOW}attempts{Color.END}={self.attempted}")
+		else:
+			sys.exit(0)
 
 	def addTask(self, tasks: list):
 		self.task_args += tasks
@@ -121,7 +128,6 @@ class Node(threading.Thread):
 					self.stop()
 				else:
 					# map private key to public key via node function
-					#full_pub_key = self.mapPublicKey(db['priv_key'])
 					full_pub_addr = self.mapPublicAddr(db['priv_key'])
 
 					# append public key to ID
@@ -133,25 +139,6 @@ class Node(threading.Thread):
 			print(f"{Color.RED}PANIC{Color.END}: You don't have a private key.")
 
 		return basic_id
-
-	def verackSwitch(self, node, magic):
-		if magic == self.id[2]:
-			if self.VERACK == False:
-				self.VERACK = True
-			elif self.VERACK == True:
-				print("(MultisendError) User sent more than one version message. Disconnecting.")
-
-				# tell the destination node that they sent too many version messages
-				data = ["error", "user sent more than one version message"]
-				payload = pack(data)
-				self.send_to_node(node, payload)
-
-				time.sleep(2) # 2 second safety wait period
-				# disconnect from faulty node
-				self.disconnect_with_node(node)
-		elif magic != self.id[2]:
-			print("(FaultyNode) Node has a fake revision hash.")
-			self.disconnect_with_node(node)
 
 	def dhkey(self, y, x):
 		# y = dest exchange
@@ -195,31 +182,31 @@ class Node(threading.Thread):
 		else:
 			self.debug_print("Node send_to_node: Could not send the data, node is not found!")
 
+	# runs when a node connects to another node
 	def connect_with_node(self, host, port, reconnect=False):
 		if host == self.host and port == self.port:
-			print("connect_with_node: Cannot connect with yourself!!")
+			panic("connect_with_node: Cannot connect with yourself!!")
 			return False
 		for node in self.nodes_outbound:
 			if node.host == host and node.port == port:
-				print("connect_with_node: Already connected with this node (" + node.id[0] + ").")
+				panic("connect_with_node: Already connected with this node (" + node.id[0] + ").")
 				return True
 
 		try:
+			# init the connection
 			sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-			#self.debug_print("connecting to %s port %s" % (host, port))
 			sock.connect((host, port))
 
-			#encoded_id = [x.encode('utf-8') for x in self.id]
-			#payload = rlp_encode(encoded_id)
-
+			# serialize the id (rlp) & send
 			payload = pack(self.id)
 			sock.send(payload)
-			# sock.send(self.id[0].encode('utf-8'))
 
+			# wait to receive the id
 			connected_node_id = sock.recv(4096)
+
+			# deserialize the id (rlp)
 			connected_node_id = unpack(connected_node_id)
-			#connected_node_id = rlp_decode(connected_node_id)
-			#connected_node_id = [x.decode('utf-8') for x in connected_node_id]
+
 			print(connected_node_id)
 
 			self.connected_node_ids.append(connected_node_id)
@@ -228,6 +215,19 @@ class Node(threading.Thread):
 			#if self.id == connected_node_id:
 				print("connect_with_node: You cannot connect with yourself?!")
 				sock.send("CLOSING: Already having a connection together".encode('utf-8'))
+				sock.close()
+				return True
+
+			if self.id[2] == connected_node_id[2]:
+				# check if node is connecting twice
+				if self.VERACK is not True:
+					self.VERACK = True
+				else:
+					panic("(UntrustworthyNode) Disconnecting.")
+					sock.send("ERROR: Sent version message twice".encode('utf-8'))
+					sock.close()
+			else:
+				panic("Github version is incompatible. Try a git pull.")
 				sock.close()
 				return True
 
@@ -244,20 +244,14 @@ class Node(threading.Thread):
 			self.nodes_outbound.append(thread_client)
 			self.outbound_node_connected(thread_client)
 
-			"""
-			if reconnect:
-				self.debug_print("connect_with_node: Reconnection check is enabled on node " + host + ":" + str(port))
-				self.reconnect_to_nodes.append({"host": host, "port": port, "tries": 0})
-				return True
-			"""
 			return thread_client
 		except ConnectionRefusedError:
 			self.tried += 1
 			info(f"Connecting to nearby peers               {Color.GREEN}connected{Color.END}={self.connected} {Color.GREEN}attempted{Color.END}={self.tried} {Color.GREEN}banned{Color.END}={self.banned}")
-			#self.debug_print("TcpServer.connect_with_node: Can't establish a communication with an idle node.")
 			return False
 		except Exception as e:
-			#self.debug_print("TcpServer.connect_with_node: Could not connect with node. (" + str(e) + ")")
+			self.tried += 1
+			info(f"Connecting to nearby peers               {Color.GREEN}connected{Color.END}={self.connected} {Color.GREEN}attempted{Color.END}={self.tried} {Color.GREEN}banned{Color.END}={self.banned}")
 			return False
 
 	def disconnect_with_node(self, node):
@@ -304,14 +298,9 @@ class Node(threading.Thread):
 				if self.max_connections == 0 or len(self.nodes_inbound) < self.max_connections:
 
 					connected_node_id = connection.recv(4096) # When a node is connected, it sends it id!
-					#connected_node_id = rlp_decode(connected_node_id)
-					#connected_node_id = [x.decode('utf-8') for x in connected_node_id]
 					connected_node_id = unpack(connected_node_id)
 
-					#encoded_id = [x.encode('utf-8') for x in self.id]
-					#payload = rlp_encode(encoded_id)
 					payload = pack(self.id)
-					# connection.send(self.id.encode('utf-8')) # Send my id to the connected node!
 					connection.send(payload) # Send my id to the connected node!
 
 					thread_client = self.create_new_connection(connection, connected_node_id, client_address[0], client_address[1])
@@ -323,21 +312,27 @@ class Node(threading.Thread):
 				else:
 					self.debug_print("New connection is closed. You have reached the maximum connection limit!")
 					connection.close()
-            
+
 			except socket.timeout:
 				self.debug_print('Node: Connection timeout!')
+				self.tried += 1
+				info(f"Connecting to nearby peers               {Color.GREEN}connected{Color.END}={self.connected} {Color.GREEN}attempted{Color.END}={self.tried} {Color.GREEN}banned{Color.END}={self.banned}")
 			except Exception as e:
+				self.tried += 1
+				info(f"Connecting to nearby peers               {Color.GREEN}connected{Color.END}={self.connected} {Color.GREEN}attempted{Color.END}={self.tried} {Color.GREEN}banned{Color.END}={self.banned}")
 				raise e
 
 			self.reconnect_nodes()
 			time.sleep(0.01)
 
-		print("Node stopping...")
+		info("Node stopping...")
+		total_sockets = len(self.nodes_inbound) + len(self.nodes_outbound)
 		for t in self.nodes_inbound:
 			t.stop()
 		for t in self.nodes_outbound:
 			t.stop()
 
+		info(f"All connected nodes are now disconnected. Closing {Color.GREEN}{total_sockets}{Color.END} socket threads.")
 		time.sleep(1)
 
 		for t in self.nodes_inbound:
@@ -345,11 +340,14 @@ class Node(threading.Thread):
 		for t in self.nodes_outbound:
 			t.join()
 
-		self.sock.settimeout(None)   
+		self.sock.settimeout(None)
 		self.sock.close()
-		print("Node stopped")
+		info("Node stopped")
 
 	def outbound_node_connected(self, node):
+		"""
+		You have connected to node
+		"""
 		self.connected += 1
 		self.debug_print("outbound_node_connected: " + self.node_num)
 		if self.callback is not None:

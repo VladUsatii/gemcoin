@@ -20,6 +20,7 @@ from constants import *
 from p2perrors import *
 from serialization import *
 from packerfuncs import *
+from remotenodes import *
 
 # import functions from parent
 p = os.path.abspath('../..')
@@ -44,7 +45,6 @@ Checks volumes and bin for block information. Returns configuration and verifica
 """
 class Validate(object):
 	def __init__(self, update, src_node, dest_node):
-		# request messages are mapped directly by index to acknowledge messages
 		self.MESSAGES_REQUEST	= ["BLOCKGET", "BLOCKUPDATE"]
 		self.MESSAGES_ACK		= ["ACKDOWNLOAD", "ACKUPDATE"]
 
@@ -113,87 +113,19 @@ class Validate(object):
 		self.src_node.send_to_node(self.dest_node, serialized_request)
 
 """
-p2p
+node_connected
 
-Class responsible for keeping a connection alive. If not present, any two nodes will cease communication. A Checkup (0x00) message checks a node's compatibility every specified interval. A Disconnect (0x01) message warns an outbound node that is connected that it has 3 seconds to disconnect before it attempts to disconnect. 
-
+This is what happens when any node is connected
 """
-class p2p(object):
-	def __init__(self, AES_key: int, src_node, dest_node):
-		self.AES_key = AES_key
-		self.src_node = src_node
-		self.dest_node = dest_node
+def node_connected(self, node, connection_type: str):
+		if connection_type not in ["inbound", "outbound"]:
+			panic("Invalid connection type.")
+			sys.exit(0)
 
-	def Checkup(self, comm: int):
-		"""
-		sub-opcode	| meaning						|
-		----------------------------------------
-		0x00		| preserve connection			|
-		0x01		| large communication incoming	|
-		0x02		| level-2 subprotocol comm.		|
-		"""
-		# [message_type: 0x00, git_hash: hash, protocol: PythonicGemcoin, port: 1513, message_subtype: 0x00, pub_key: secp256k1(priv_key)]
-
-		# establish headers
-		headers = [0x00, self.src_node.id[2], "PythonicGemcoin", 1513]
-
-		# append subprotocol based on input
-		if comm in [0x00, 0x01, 0x02]:
-			headers.append(comm)
-		else:
-			# default is preservation of connection
-			headers.append(0x00)
-
-		# importing private key --> public key
-		try:
-			headers.append(src_node.id[3])
-		except IndexError:
-			print("(NodeKeyError) Your node does not have a private key on file. Without a key, you can't perform on chain.\n\nSee github.com/VladUsatii/gemcoin.git for directions to creating a private key.")
-			self.Disconnect(0x02)
-
-		#headers = [x.encode('utf-8') for x in headers]
-		#payload = rlp_encode(headers)
-
-		#aes = AES_exchange(self.AES_key)
-		#encrypted_payload = aes.encrypt(payload)
-
-		#return payload
-
-		return pack(headers, self.AES_key)
-
-	def Disconnect(self, error):
-		# NOTE: All codes return non-blocking requests. A new peer will be introduced on Disconnect.
-		# [message_type: 0x01, port, subprotocol]
-		headers = [0x01, 1513, error]
-
-		#headers = [x.encode('utf-8') for x in headers]
-		#payload = rlp_encode(headers)
-
-		#aes = AES_exchange(self.AES_key)
-		#encrypted_payload = aes.encrypt(payload)
-
-		#return payload
-
-		return pack(headers, self.AES_key)
-
-"""
-srcNode
-
-Network event handler (callbacks)
-"""
-class srcNode(Node):
-	def __init__(self, host, port, id=None, callback=None, max_connections=0):
-		super(srcNode, self).__init__(host, port, id, callback, max_connections)
-		self.MASTER_DEBUG = True
-
-	def node_connected(self, node):
 		print(f"{node.id}")
-		# catch outbound node connection errors
-		try:
-			if node.id[2] != self.id[2]:
-				self.node_disconnect_with_outbound_node(node)
-				NodeIncompatibilityError()
-		except IndexError:
+
+		# check version acknowledgement once again (may have inserted code)
+		if self.VERACK is not True:
 			self.node_disconnect_with_outbound_node(node)
 			NodeIncompatibilityError()
 
@@ -209,26 +141,42 @@ class srcNode(Node):
 			db[node.host] = str(node.port)
 			info("Trustworthy node has been added to the peercache.")
 
-		"""
-		# create session AES key, creates a secure channel
-		session_dhkey = self.dhkey(node.id[0], self.id[1])
-		if self.MASTER_DEBUG == True:
-			print(f"\n\n{session_dhkey}\n\n")
-		print("(InboundNodeConnection) Connected to a gemcoin peer. Attempting time sync and block state discovery.")
-		"""
+		""" BLOCK SYNC """
 
-		# class instance to continue or discontinue communications
-		update = p2p(session_dhkey, self, node)
+		rqb = RequestBlocks(self, node, session_dhkey)
 
-		# creation of an instance
-		validation_instance = Validate(update, self, node)
+		# Outbound nodes (we connect outward)
+		if connection_type == "outbound":
 
-		if validation_instance.src_blockchain == 0 or validation_instance.src_blockchain == None:
-			validation_instance.send_all_blocks()
-			# link somewhere to wait (e.g. time sleep)
-		elif len(validation_instance.send_all_blocks()) > 0:
-			validation_instance.request_block_update()
-			# link somewhere to wait (e.g. time sleep)
+			if self.task_args[0] == "REQUEST_FULL_BLOCKS":
+				# Headers-first method
+				# (Bitcoin core introduced this in PR 4468)
+				try:
+					rqb.requestAllHeaders() # <-- will start long download
+				except Exception:
+					warning("Stopping header sync.")
+					main()
+
+			if self.task_args[0] == "SYNC_BLOCKS":
+				try:
+					# feed the packet your current block number and hash
+					rqb.requestNewHeaders(self.task_args[1], self.task_args[2])
+				except:
+					warning("Stopping header sync.")
+					main()
+
+		# Inbound nodes (someone connect to us, how do we respond?)
+		# We don't respond HERE, we respond in node_message() <-- node.py
+
+"""
+srcNode
+
+Network event handler (callbacks)
+"""
+class srcNode(Node):
+	def __init__(self, host, port, id=None, callback=None, max_connections=0):
+		super(srcNode, self).__init__(host, port, id, callback, max_connections)
+		self.MASTER_DEBUG = True
 
 	"""
 	OUTBOUND NODE CONNECTED
@@ -236,7 +184,7 @@ class srcNode(Node):
 	Checks if node versions are the same. If not, a fork is theoretically created. If they are, a session key is returned and state/block discovery are synced and started.
 	"""
 	def outbound_node_connected(self, node):
-		self.node_connected(self, node)
+		node_connected(self, node, "outbound")
 
 	"""
 	INBOUND NODE CONNECTED
@@ -244,7 +192,7 @@ class srcNode(Node):
 	Checks if node versions are the same. If not, a fork is theoretically created. If they are, a session key is returned and state/block discovery are synced and started.
 	"""
 	def inbound_node_connected(self, node):
-		self.node_connected(self, node)
+		node_connected(self, node, "inbound")
 
 	def inbound_node_disconnected(self, node):
 		print("(InboundNodeError) Disconnected from peer.")
@@ -254,15 +202,7 @@ class srcNode(Node):
 
 	def node_message(self, node, data):
 		session_dhkey = self.dhkey(node.id[0], self.id[1])
-		#aes = AES_exchange(session_dhkey)
-		node_update_instance = p2p(session_dhkey, self, node)
-
 		message = unpack(data, session_dhkey)
-
-		# aes decrypt first
-		#decrypted_data = aes.decrypt(data)
-		# de-serialization
-		#message = rlp_decode(decrypted_data)
 
 		# HEADERS are LISTS
 		if isinstance(message, list):
@@ -270,9 +210,6 @@ class srcNode(Node):
 				print(message)
 
 			# Check if requesting full blocks
-			if message[0] == validation_instance.MESSAGES_REQUEST[0]:
-				# handle peer type correctly by index, peer 3 and 4 are highly discouraged for production use
-				validation_instance.ack_send_all_blocks(message[1])
 
 			# Checkup handling
 			elif int(message[0]) == 0x00:
@@ -342,67 +279,9 @@ def localAddresses():
 	return usableIPs
 
 """
-REMOTE ADDRESSES
-
-Get a list of seeds with IP addresses to known hosts, get a list of boostrapped IPs, and get a list of static IPs from an externally connected node for the next validation of a block.
-"""
-# list of nodes saved to remoteNodes.txt
-class RemoteSearch(object):
-	def __init__(self, seedList: list):
-		self.seedList = seedList
-		self.nodeList = self.nodeList(self.seedList)
-
-		# manually entered unknown nodes -> first priority connection
-		self.newNodes = []
-
-		# known seeds -> second priority connection
-		self.remoteNodes = []
-
-	def nodeList(self, seedList: list):
-		if seedList is not None:
-			for seed in seedList:
-				nodes = subprocess.check_output(['dig', f'{seed}']).split('\n')
-				self.remoteNodes.append(nodes)
-
-	# TODO: PROPOSAL: sys argv [0] to connect a node that is unknown (in other words, bootstrap the network manually)
-	def boostrapRemoteConnection(self, IPs: list) -> list:
-		if IPs is not None:
-			for IP in IPs:
-				if IP not in self.newNodes and IP not in self.remoteNodes:
-					self.newNodes.append(IP)
-
-	# get the external node's IP list and add it to host's list
-	def externallyConnectedNodeIPList(self, ext_node_known_hosts: list):
-		if ext_node_known_hosts is not None:
-			for node in ext_node_known_hosts:
-				if node not in self.newNodes and node not in self.remoteNodes:
-					self.remoteNodes.append(node)
-
-
-
-
-# userProvidedSeeds = ["seed.gemcoiners.com"]
-userProvidedSeeds = None
-rs = RemoteSearch(userProvidedSeeds)
-
-
-"""
-Bootstrap Node
-
-Search for a node that has a very high uptime as evidenced by reading the ID.
-"""
-# TODO: Restructure the ID to include evidenceHash (hash of uptime, blocknumber, etc.)
-# TODO: Find a node in close proximity with Kademlia-like implementation
-
-
-
-
-"""
 MAIN
 
 Peer discovery starts here. Git hash is presented, local nodes are searched, and remote nodes are searched if no local nodes are found. If a connection can be established, callbacks are used (srcNode instance is preserved).
-
-TODO: Add the sys argv to the docs and create a client
 
 """
 def main():
@@ -413,22 +292,26 @@ def main():
 	# check caches and put arguments in the Node class
 	task_args = ephemeralProcess()
 
-	# PROCESS_CALL
 	PROCESS_CALL = task_args[0]
-	# latest block
 	latest_block_number = int(task_args[1])
 	latest_block_hash   = task_args[2]
 
 	# init the socket
-	#IP = socket.gethostbyname(socket.gethostname())
 	src_node = srcNode(IP, 1513)
 	src_node.start()
 
+	# TODO: Make REAL gemcoin seed nodes that can be hardcoded in for the IBD
+	"""
+	# contact an extremely trustworthy node in close proximity and request full block download
 	if PROCESS_CALL == "REQUEST_FULL_BLOCKS" or latest_block_number == 0:
-		# contact an extremely trustworthy node in close proximity and request full block download
-		# TODO: Write this
-		#bootstrapNode(src_node)
-		pass
+		starterNodes = seedNodes()
+		for x in starterNodes:
+			try:
+				src_node.addTask(task_args)
+				src_node.connect_with_node(x[0], x[1])
+			except:
+				src_node.incrementAttempts(1)
+	"""
 
 	""" LOCAL SEED """
 
@@ -442,13 +325,9 @@ def main():
 				try:
 					src_node.addTask(task_args)
 					src_node.connect_with_node(str(k), 1513)
-				except KeyboardInterrupt:
-					break
 				except:
-					continue
+					src_node.incrementAttempts(1)
 				k = db.nextkey(k)
-
-	interrupts = 0
 
 	""" LOCAL SEARCH """
 
@@ -458,18 +337,13 @@ def main():
 			src_node.addTask(task_args)
 			src_node.connect_with_node(lIP, 1513)
 		except:
-			interrupts += 1
-			if interrupts < 10:
-				warning(f"Panic more to force quit.   {Color.YELLOW}attempts{Color.END}={interrupts}")
-			else:
-				sys.exit(0)
-			continue
+			src_node.incrementAttempts(1)
 
 	""" REMOTE SEARCH """
 
 	# TBD
 	src_node.stop()
-	print(f"{Color.RED}PANIC{Color.END}: Closing gemcoin.")
+	panic("Closing gemcoin.")
 
 if __name__ == "__main__":
 	main()

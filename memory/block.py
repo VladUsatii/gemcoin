@@ -274,34 +274,10 @@ class Cache(object):
 
 		self.DB = leveldb.LevelDB(self.cachePATH)
 
-		"""
-		# the mempool path (fullnode only)
-		if self.pathType == "mempool":
-			self.mem = self.checkCache("mempool")
-			self.isMemcacheCreated = self.mem[0]
-			self.mempoolPath       = self.mem[1]
-
-			self.memdb             = leveldb.LevelDB(self.mempoolPath) # the database w mempool
-
-		# the block header path (lightnodes)
-		elif self.pathType == "headers":
-			self.headers = self.checkCache("headers")
-			self.isHeadersCreated  = self.headers[0]
-			self.headersPath       = self.headers[1]
-
-			self.headersdb         = leveldb.LevelDB(self.headersPath) # the database w block headers
-
-		# the actual blockchain (fullnode only)
-		elif self.pathType == "blocks":
-			self.blocks = self.checkCache("blocks")
-			self.isBlockPathCreated= self.blocks[0]
-			self.blockPath         = self.blocks[1]
-
-			self.blockdb           = leveldb.LevelDB(self.blockPath) # the database w blocks in raw
-
-		else:
-			print("Not a valid type of path. Must be a Gemcoin cache file (e.g. mempool, headers, blocks).")
-		"""
+	def getAllHeaders(self): # returns encoded list of all headers
+		listed = list(self.DB.RangeIter(include_value=True, reverse=False))
+		copy_list = [[bytes(x[0]), bytes(x[1])] for x in listed]
+		return copy_list
 
 	def readFullDB(self, reverse=True) -> list: # of lists
 		listed = list(self.DB.RangeIter(include_value=True, reverse=reverse))

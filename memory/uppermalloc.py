@@ -52,7 +52,7 @@ def ephemeralProcess() -> list:
 	if int(compvers) < 15:
 		raise OSError("MacOS must be updated to at least 15.0.0 to access Gemcoin.")
 	elif int(compvers) == 15:
-		print("Gemcoin recommends users to update their computers to the latest version. Our minimum supported version is 15.0.0 and will be obsolete in the next update.")
+		print("Gemcoiest_node is full_noden recommends users to update their computers to the latest version. Our minimum supported version is 15.0.0 and will be obsolete in the next update.")
 
 	# Check if user has sufficient data to make 3 caches
 	total, used, free = convertToGb(freeDiskSpace())
