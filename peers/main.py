@@ -54,6 +54,7 @@ from gemcoin.memory.uppermalloc import *
 from gemcoin.memory.profiling import *
 from gemcoin.memory.cache_info import *
 from gemcoin.memory.nodeargs import *
+from gemcoin.memory.block import *
 
 IP = socket.gethostbyname(socket.gethostname())
 
