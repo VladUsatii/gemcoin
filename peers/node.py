@@ -21,7 +21,6 @@ if p not in sys.path:
 
 from gemcoin.prompt.color import Color
 from gemcoin.prompt.errors import *
-# from gemcoin.symmetric import AES_exchange
 from gemcoin.symmetric import AES_byte_exchange
 from gemcoin.wallet.keygenerator import Wallet
 
@@ -40,6 +39,10 @@ class Node(threading.Thread):
 		self.host = host
 		self.port = port
 		self.callback = callback
+
+		# block information from cache
+		self.latest_block_number = 0
+		self.latest_block_hash   = ""
 
 		self.nodes_inbound = []  # Nodes that are connect with us N->(US)
 		self.nodes_outbound = []  # Nodes that we are connected to (US)->N

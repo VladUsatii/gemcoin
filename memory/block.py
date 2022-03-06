@@ -259,7 +259,12 @@ def ConstructTransaction(version, workFee, timestamp, fromAddr, toAddr, value):
 
 
 
+"""
+Cache (responds with 0x00 or Hello message)
 
+Responsible for accessing the low-level databases and caches during a socket interaction. Also good at retrieving data from the mempool, packing and sending block data, and header data as well.
+
+"""
 class Cache(object):
 	def __init__(self, typeOfPath):
 		if typeOfPath in ['mempool', 'headers', 'blocks']:

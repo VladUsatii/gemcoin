@@ -2,6 +2,13 @@ import cmd, sys
 from color import Color
 import subprocess
 
+# import functions from parent
+p = os.path.abspath('../..')
+if p not in sys.path:
+	sys.path.append(p)
+
+from gemcoin.memory.block import *
+
 class GemcoinCLI(cmd.Cmd):
 	intro = f"""
              __ _      ___     _ __ ___       ___      ___     (_)    _ __  
@@ -37,7 +44,8 @@ Long Hash				: {GRH_long}"""
 		# will get account details from makeaccount
 		return "Not finished yet."
 
-
+	def do_getDataFromKey(self, arg):
+		return "Not finished yet."
 
 	def do_exit(self, arg):
 		sys.exit("Quitting gemcoin CLI.")

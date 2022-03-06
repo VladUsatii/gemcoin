@@ -5,6 +5,7 @@ p = os.path.abspath('../..')
 if p not in sys.path:
 	sys.path.append(p)
 
+from gemcoin.prompt.errors import *
 from gemcoin.memory.nodeargs import *
 from gemcoin.memoy.block import *
 
@@ -34,6 +35,10 @@ class RequestBlocks(object):
 		payload = Hello(self.src_node.VERSION, self.src_node.id[3], ['0x02'], self.dhkey)
 		self.src_node.send_to_node(self.dest_node, payload)
 
+	def subprotocolRequest(self, bytecode: bytes):
+		payload = Hello(self.src_node.VERSION, self.src_node.id[3], ['0x03', [bytecode]], self.dhkey)
+		self.src_node.send_to_node(self.dest_node, payload)
+
 """
 Request Handler
 
@@ -51,55 +56,39 @@ class RequestHandler(object):
 		self.dest_node = dest_node
 		self.dhkey = dhkey
 
-	# "2" (Query and send back data)
+	# 2-3 (Handle, send, handle receiver data)
 	def handler(self, recvd):
 		# check version
-		if self.src_node.VERSION != recvd[0]:
+		if self.src_node.VERSION != recvd[1]:
 			self.send("ERROR: Mismatched versions. Can't continue.")
 
 		# read capabilities and handle appropriately
-		for index, x in enumerate(recvd[2]):
+		for index, x in enumerate(recvd[3]):
 
-			# TODO: check node type
-			# here
+			# TODO: check node type HERE
 
-			# the sender
+			# receiver responding to opcodes here
 			if x == '0x00':
 				cache = Cache('headers')
 				headers = cache.getAllHeaders()
 
-				for index, header in enumerate(headers):
-					payload = pack(header.encode('utf-8'))
+				for nested_index, header in enumerate(headers):
+					payload = Hello(self.src_node.VERSION, self.src_node.id[3], ['0x04', [x, nested_index, header]], self.dhkey)
 					self.src_node.send_to_node(self.dest_node, payload)
 
-			if x == '0x01':
-				cache = Cache('headers')
-				headers = cache.getAllHeaders()
 
-				currentBlockNum = recvd[2][index+1][0]
-
-				# if our current block number is less than the request, we disconnect
-				if self.src_node. < currentBlockNum:
-					payload = Bye(0x01, self.dhkey)
-				elif self.src_node.
-
-			# handle and parse
+			# sender responds to the receiver's ACK
 			if x == '0x04':
-				pass
+				if type(recvd[3][index+1]) is list and len(recvd[3][index+1]) == 3:
+					try:
+						subop, index, data = recvd[3][index+1][::]
 
-	# "3" (receive and parse data from initial query)
-	def receivingData(self, packet):
-		if packet[2] == '0x10':
-			# current packet index
-			# block header to be saved
-			index = recvd[2][index+1]
-			data  = recvd[2][index+2]
+						# how a sender handles the data he requested
+						if subop == '0x00':
+							cache = Cache('headers')
+							cache.Create(index.encode('utf-8'), data.encode('utf-8'), cache.DB)
+							info(f"Downloaded header			{Color.GREEN}index{Color.END}={index}")
 
-			cache = Cache("headers")
-			cache.Create(index.encode('utf-8'), data.encode('utf-8'), cache.DB)
-
-
-
-
-
-
+					except Exception as e:
+						panic("Interrupting large download. Will start where left off on next start.")
+						panic(f"Error: {e}")

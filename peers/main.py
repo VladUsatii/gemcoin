@@ -1,4 +1,22 @@
 #!/usr/bin/env python3
+"""
+MAIN
+
+Title  : Gemcoin-Python Client 0.01 TEST
+Author : Vlad Usatii
+
+License: GPL 3.0
+---
+Impersonation or distribution of code under a different name is prohibited. Use as free software without
+paid reproduction or redistribution. All redistribution is considered a breach of GPL 3.0 Modified Clause.
+
+Description
+---
+Main function for peer discovery.
+Startpoint of the Gemcoin protocol.
+
+"""
+# general imports
 import socket
 import sys, os
 import time
@@ -12,7 +30,6 @@ import dbm
 import subprocess
 import io
 import json
-# import os
 
 from node import Node
 from p2pmath import *
@@ -28,6 +45,7 @@ if p not in sys.path:
 	sys.path.append(p)
 
 from gemcoin.symmetric import AES_byte_exchange
+
 from gemcoin.prompt.color import Color
 from gemcoin.prompt.errors import *
 
@@ -35,82 +53,9 @@ from gemcoin.prompt.errors import *
 from gemcoin.memory.uppermalloc import *
 from gemcoin.memory.profiling import *
 from gemcoin.memory.cache_info import *
+from gemcoin.memory.nodeargs import *
 
 IP = socket.gethostbyname(socket.gethostname())
-
-"""
-VALIDATE
-
-Checks volumes and bin for block information. Returns configuration and verification/validation based on state.
-"""
-class Validate(object):
-	def __init__(self, update, src_node, dest_node):
-		self.MESSAGES_REQUEST	= ["BLOCKGET", "BLOCKUPDATE"]
-		self.MESSAGES_ACK		= ["ACKDOWNLOAD", "ACKUPDATE"]
-
-		self.update = update
-
-		self.AES_key = update.AES_key # diffie-hellman key for AES -- avoid static identification by firewalls
-		self.src_node = src_node # src node class instance
-		self.dest_node = dest_node # dest node class instance
-
-		self.src_blockchain = []
-
-		self.node_type = src_node.node_type
-
-	def init_blockchain(self, node_type: int):
-		# src_node.send(update.Checkup())
-		# attempts to read from key-value store
-		return None
-
-	def send_all_blocks(self):
-		"""
-		Destination Node needs src node to acknowledge and asks to prepare to receive all blocks (opcode 0x00 0x01)
-		"""
-		# type of node (the lower the number, the more data required on disk)
-		data = [self.MESSAGES_REQUEST[0], self.node_type]
-		payload = pack(data, self.AES_key)
-		#node_type = [self.MESSAGES_REQUEST[0].encode('utf-8'), str(self.node_type).encode('utf-8')]
-		#serialized_request = rlp_encode(node_type)
-
-		#request = AES_exchange(self.AES_key).encrypt(serialized_request)
-		self.src_node.send_to_node(self.dest_node, payload)
-
-	def ack_send_all_blocks(self, node_type: int):
-		"""
-		Destination Node acknowledges src node and src node will prepare to receive all blocks (opcode 0x00 0x01) if it haves any at all
-
-		If it has no blocks as well, both will disconnect and find other nodes on the network
-		"""
-
-		# check if user has any blocks to send or if they have a full node download
-		status = self.init_blockchain(node_type)
-		if status is None or self.node_type != node_type:
-			self.update.Disconnect(0x02) # useless node
-		elif status is not None and self.node_type == node_type:
-			payload = pack(self.MESSAGES_ACK[0], self.AES_key)
-			#serialized_request = rlp_encode(request)
-			#request = AES_exchange(self.AES_key).encrypt(self.MESSAGES_ACK[0])
-			self.src_node.send_to_node(self.dest_node, payload)
-
-	def request_block_update(self):
-		"""
-		Destination Node needs src node to acknowledge and asks to prepare to receive block update (opcode 0x00 0x01)
-		"""
-		request = AES_exchange(self.AES_key).encrypt(self.MESSAGES_REQUEST[1])
-		serialized_request = rlp_encode(request)
-
-		self.src_node.send_to_node(self.dest_node, serialized_request)
-
-	def ack_block_update(self):
-		"""
-		Destination Node acknowledges src node and src node will prepare to receive updates (opcode 0x00 0x01)
-		"""
-		# ping host with Connect
-		request = AES_exchange(self.AES_key).encrypt(self.MESSAGES_ACK[1])
-		serialized_request = rlp_encode(request)
-
-		self.src_node.send_to_node(self.dest_node, serialized_request)
 
 """
 node_connected
@@ -149,8 +94,7 @@ def node_connected(self, node, connection_type: str):
 		if connection_type == "outbound":
 
 			if self.task_args[0] == "REQUEST_FULL_BLOCKS":
-				# Headers-first method
-				# (Bitcoin core introduced this in PR 4468)
+				# Headers-first method (Bitcoin Core introduced this in PR 4468)
 				try:
 					rqb.requestAllHeaders() # <-- will start long download
 				except Exception:
@@ -200,48 +144,51 @@ class srcNode(Node):
 	def outbound_node_disconnected(self, node):
 		print("(OutboundNodeError) Disconnected from peer.")
 
+
+	"""
+	NODE MESSAGE
+
+	Asynchronous spot where all node messages are unpacked and checked for opcodes
+	"""
 	def node_message(self, node, data):
 		session_dhkey = self.dhkey(node.id[0], self.id[1])
 		message = unpack(data, session_dhkey)
 
-		# HEADERS are LISTS
-		if isinstance(message, list):
-			if self.MASTER_DEBUG == True:
-				print(message)
+		# request block header instance
+		rqb = RequestHandler(self, node, session_dhkey)
 
-			# Check if requesting full blocks
+		if not isinstance(message, list):
+			panic("Node is not trustworthy. Throwing error.")
+			bye = Bye(0x00, session_dhkey)
+			self.src_node.send_to_node(node, bye)
 
-			# Checkup handling
-			elif int(message[0]) == 0x00:
-				if int(message[-2]) == 0x00:
-					node_update_instance.Checkup(0x00)
-
-			# TODO: Finish this up
-			elif int(message[0]) == 0x01:
+		""" "Bye" Opcode handler """
+		if message[0] == '0x01':
+			disconnect_reason = {
+				'0x00': 'Requested to disconnect.',
+				'0x01': 'Useless node.',
+				'0x02': 'Incorrect version on node.',
+				'0x03': 'Null received. Check connection.',
+				'0x04': 'New node introduced. Disconnecting to preserve security.'
+			}
+			""" Print disconnect reason if given """
+			if message[1]:
+				info(disconnect_reason[message[1]])
 				self.node_disconnect_with_outbound_node(node)
 
-		# BLOCK OPERATIONS are STRINGS
-		elif isinstance(message, str):
-			print("(IncomingNodeMessage) " + str(message))
-			update = p2p(session_dhkey, self, node)
-			validation_instance = Validate(update, self, node)
+		""" "Hello" Opcode handler """
+		if message[0] == '0x00':
+			connect_reason = {
+				'0x00': rqb.handler(message),
+				'0x04': rqb.handler(message),
+				'0x0f': rqb.customHandler(message)
+			}
 
-			# if message asks to get all blocks (BLOCKGET)
-			if str(message) == validation_instance.MESSAGES_REQUEST[0]:
-				validation_instance.ack_send_all_blocks()
-			# if message asks to get latest block (BLOCKUPDATE)
-			elif str(message) == validation_instance.MESSAGES_REQUEST[1]:
-				validation_instance.ack_block_update()
+			try:
+				connect_reason[message[3]]
+			except Exception as e:
+				panic(f"Hit a node message snag: {e}")
 
-			# if message is an acknowledgement, we need to handle the acknowledgement in a new thread
-			elif str(message) == validation_instance.MESSAGES_ACK[0]:
-				validation_instance.initial_block_download()
-			elif str(message) == validation_instance.MESSAGES_ACK[1]:
-				validation_instance.askfor_latest_block()
-
-			else:
-				# untrusted node
-				print("(UntrustedNode) Node is not trustworthy.")
 
 	def node_disconnect_with_outbound_node(self, node):
 		print("node wants to disconnect with oher outbound node: (" + self.id[0] + "): " + node.id[0])
@@ -301,17 +248,21 @@ def main():
 	src_node.start()
 
 	# TODO: Make REAL gemcoin seed nodes that can be hardcoded in for the IBD
-	"""
+	skip = True
 	# contact an extremely trustworthy node in close proximity and request full block download
-	if PROCESS_CALL == "REQUEST_FULL_BLOCKS" or latest_block_number == 0:
-		starterNodes = seedNodes()
-		for x in starterNodes:
-			try:
-				src_node.addTask(task_args)
-				src_node.connect_with_node(x[0], x[1])
-			except:
-				src_node.incrementAttempts(1)
-	"""
+	if skip is False:
+		if PROCESS_CALL == "REQUEST_FULL_BLOCKS" or latest_block_number == 0:
+			starterNodes = seedNodes()
+			for x in starterNodes:
+				try:
+					# configure the node
+					src_node.addTask(task_args)
+					src_node.latest_block_number = latest_block_number
+					src_node.latest_block_hash   = latest_block_hash
+
+					src_node.connect_with_node(x[0], x[1])
+				except:
+					src_node.incrementAttempts(1)
 
 	""" LOCAL SEED """
 
@@ -323,7 +274,11 @@ def main():
 			while k is not None:
 				print(f'{k} is a trusted node. Connecting. . .')
 				try:
+					# configure the node
 					src_node.addTask(task_args)
+					src_node.latest_block_number = latest_block_number
+					src_node.latest_block_hash   = latest_block_hash
+
 					src_node.connect_with_node(str(k), 1513)
 				except:
 					src_node.incrementAttempts(1)
@@ -334,7 +289,11 @@ def main():
 	IPs = localAddresses()
 	for lIP in IPs:
 		try:
+			# configure the node
 			src_node.addTask(task_args)
+			src_node.latest_block_number = latest_block_number
+			src_node.latest_block_hash   = latest_block_hash
+
 			src_node.connect_with_node(lIP, 1513)
 		except:
 			src_node.incrementAttempts(1)

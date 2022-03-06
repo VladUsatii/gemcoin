@@ -55,7 +55,7 @@ def Hello(version, address, capabilities, secret_key=None):
 	if "gemcoin://" not in address:
 		address = formatNodeAddr(address)
 
-	return pack([version, address, capabilities], secret_key)
+	return pack(['0x00', version, address, capabilities], secret_key)
 
 """
 Bye
