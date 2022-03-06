@@ -56,6 +56,9 @@ from gemcoin.memory.cache_info import *
 from gemcoin.memory.nodeargs import *
 from gemcoin.memory.block import *
 
+# all capabilities
+from gemcoin.wire.nodesync import *
+
 IP = socket.gethostbyname(socket.gethostname())
 
 """

@@ -7,7 +7,7 @@ if p not in sys.path:
 
 from gemcoin.prompt.errors import *
 from gemcoin.memory.nodeargs import *
-from gemcoin.memoy.block import *
+from gemcoin.memory.block import *
 
 """
 nodesync
