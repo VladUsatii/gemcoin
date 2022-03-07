@@ -105,7 +105,7 @@ class Node(threading.Thread):
 		except IndexError:
 			return self.client_dict[8]
 		except Exception as e:
-			print(f"{Color.RED}PANIC:{Color.END} Invalid node type. Use a number from 0-8; please do research before entering one of these numbers.")
+			panic("Invalid node type. Use a number from 0-8; please do research before entering one of these numbers.")
 
 	def mapPublicAddr(self, priv_key: str):
 		pub = Wallet.nonstatic_private_to_public(priv_key)
@@ -127,7 +127,7 @@ class Node(threading.Thread):
 				candidate_key = db['priv_key']
 				# check if valid hash
 				if len(candidate_key)*4 != 256:
-					print(f"{Color.RED}PANIC:{Color.END} You have a fake key. Use SHA256 to generate a secure private key. Import must be in WIF format.")
+					panic("You have a fake key. Use SHA256 to generate a secure private key. Import must be in WIF format.")
 					self.stop()
 				else:
 					# map private key to public key via node function
@@ -139,7 +139,7 @@ class Node(threading.Thread):
 					print(info(f"(DHKey) {basic_id[0]}", returner=True) + "     " + info(f"(DHKeyOutput) {basic_id[1]}", returner=True))
 					print(version(str(basic_id[2])[:8] + "..", returner=True)           + "                  " + info(f"(PublicAddress) {full_pub_addr}", returner=True))
 		else:
-			print(f"{Color.RED}PANIC{Color.END}: You don't have a private key.")
+			panic("You don't have a private key.")
 
 		return basic_id
 
@@ -188,7 +188,7 @@ class Node(threading.Thread):
 	# runs when a node connects to another node
 	def connect_with_node(self, host, port, reconnect=False):
 		if host == self.host and port == self.port:
-			panic("connect_with_node: Cannot connect with yourself!!")
+			panic("Another node is using the same gemaddress. Change your private key now. Disconnecting.")
 			return False
 		for node in self.nodes_outbound:
 			if node.host == host and node.port == port:

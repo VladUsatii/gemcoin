@@ -73,11 +73,6 @@ def node_connected(self, node, connection_type: str):
 
 		print(f"{node.id}")
 
-		# check version acknowledgement once again (may have inserted code)
-		if self.VERACK is not True:
-			self.node_disconnect_with_outbound_node(node)
-			NodeIncompatibilityError()
-
 		# create session AES key, creates a secure channel
 		session_dhkey = self.dhkey(node.id[0], self.id[1])
 		if self.MASTER_DEBUG == True:
@@ -101,9 +96,9 @@ def node_connected(self, node, connection_type: str):
 				# Headers-first method (Bitcoin Core introduced this in PR 4468)
 				try:
 					rqb.requestAllHeaders() # <-- will start long download
-				except Exception:
+				except Exception as e:
 					warning("Stopping header sync.")
-					main()
+					print(f"Error printout: {e}")
 
 			if self.task_args[0] == "SYNC_BLOCKS":
 				try:
