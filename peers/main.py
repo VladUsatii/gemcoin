@@ -180,14 +180,14 @@ class srcNode(Node):
 			connect_reason = {
 				'0x00': rqb.handler(message),
 				'0x04': rqb.handler(message),
+				'0x0a': rqb.addToMempool(message),
 				'0x0f': rqb.customHandler(message)
 			}
 
 			try:
 				connect_reason[message[3]]
 			except Exception as e:
-				panic(f"Hit a node message snag: {e}")
-
+				panic(f"Hit a snag (Error: {e}).")
 
 	def node_disconnect_with_outbound_node(self, node):
 		print("node wants to disconnect with oher outbound node: (" + self.id[0] + "): " + node.id[0])
@@ -246,6 +246,20 @@ def main():
 	src_node = srcNode(IP, 1513)
 	src_node.start()
 
+	# all connected node IPs
+	connected_nodes = []
+
+	def default_sweep(src_node, x, task_args, latest_block_number, latest_block_hash):
+		try:
+			# configure the node
+			src_node.addTask(task_args)
+			src_node.latest_block_number = latest_block_number
+			src_node.latest_block_hash   = latest_block_hash
+
+			src_node.connect_with_node(x[0], x[1])
+		except:
+			src_node.incrementAttempts(1)
+
 	# TODO: Make REAL gemcoin seed nodes that can be hardcoded in for the IBD
 	skip = True
 	# contact an extremely trustworthy node in close proximity and request full block download
@@ -261,7 +275,7 @@ def main():
 
 					src_node.connect_with_node(x[0], x[1])
 				except:
-					src_node.incrementAttempts(1)
+					src_node.incrementAttempts(2)
 
 	""" LOCAL SEED """
 
@@ -279,27 +293,35 @@ def main():
 					src_node.latest_block_hash   = latest_block_hash
 
 					src_node.connect_with_node(str(k), 1513)
+
+					# add node IP only to connected_nodes
 				except:
 					src_node.incrementAttempts(1)
 				k = db.nextkey(k)
 
 	""" LOCAL SEARCH """
+	sweeps = 5 # sweeps variable is subject to change when remote seed nodes are added
 
 	IPs = localAddresses()
-	for lIP in IPs:
-		try:
-			# configure the node
-			src_node.addTask(task_args)
-			src_node.latest_block_number = latest_block_number
-			src_node.latest_block_hash   = latest_block_hash
+	for x in range(sweeps):
+		for lIP in IPs:
+			# find IPs that we aren't already connected to
+			if lIP not in connected_nodes:
+				try:
+					# configure the node
+					src_node.addTask(task_args)
+					src_node.latest_block_number = latest_block_number
+					src_node.latest_block_hash   = latest_block_hash
 
-			src_node.connect_with_node(lIP, 1513)
-		except:
-			src_node.incrementAttempts(1)
+					src_node.connect_with_node(lIP, 1513)
+
+					connected_nodes.append(lIP)
+				except:
+					src_node.incrementAttempts(1)
 
 	""" REMOTE SEARCH """
-
 	# TBD
+
 	src_node.stop()
 	panic("Closing gemcoin.")
 
