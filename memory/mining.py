@@ -28,7 +28,7 @@ from gemcoin.prompt.color import Color
 """
 BLOCK
 
-Thanks to mvarge of Github for this amazing prototypical code:
+Thanks to mvarge of Github for this amazing prototypical code and TechieBoy for a Pythonic implementation:
 
 https://github.com/mvarge/proof_of_work/blob/master/proof_of_work.py
 https://github.com/TechieBoy/somechain/blob/master/src/Validation%20Rules.md
@@ -62,7 +62,7 @@ class MinerClient:
 
 	# gets user state and makes it human-readable
 	def is_mining(self):
-		if self.user_state = True:
+		if self.user_state == True:
 			return True
 		else:
 			return False
@@ -72,7 +72,8 @@ class MinerClient:
 	also takes in the chain cache (yields 2016 blocks at a time), also takes in miner_addr as a payout destination
 	of all the Gem(Electricity) Outputs.
 	"""
-	def start_mining(self, mempool: set, miner_addr: str):
+	def start_mining(self, miner_addr: str):
+		mempool = self.getCurrentMempool()
 		if not self.is_mining():
 			self.master_process = Process(target=self.__mining_proc, args=(mempool, miner_addr))
 		if self.began_mining == 0:
@@ -95,7 +96,7 @@ class MinerClient:
 	"""
 	def getTxElectric_and_Size(self, txList: list) -> tuple:
 		# sort by highest work first
-		txList.sort(key=, reverse=True)
+		txList = sorted(txList, key=lambda d: d['workFee'], reverse=True) 
 		size, totalElectricity = 0, 0
 		for x in txList:
 			size             += sys.getsizeof(x.to_json())
@@ -106,7 +107,8 @@ class MinerClient:
 	get biggest transaction that doesn't exceed block size maximum
 	"""
 	def __getBestTx(self, txList: list) -> list:
-		txList.sort(key=, reverse=True)
+		# sort by highest work first
+		txList = sorted(txList, key=lambda d: d['workFee'], reverse=True) 
 		size, totalElectricity = 0, 0
 		mlist = []
 		for x in txList:
@@ -116,6 +118,33 @@ class MinerClient:
 				break
 		return mlist, totalElectricity
 
+	"""
+	GetPaths
+
+	Useful path grabber for Gemcoin caches
+	"""
+	def getPaths(self, location, FLAGS=None):
+		assert location in ['headers', 'mempool', 'blocks'], "Use supported cache type. If using a forked version of Gemcoin, please make sure to add your location in the list made in the assertion statement (memory/mining.py line 125 1)"
+
+		HOME = os.path.expanduser('~')
+		CACHE_FOLDER = os.path.join(HOME, 'Library')
+		CACHE_LOCATION = os.path.join(CACHE_FOLDER, "Gemcoin")
+
+		CACHE_LOCATION = os.path.join(CACHE_LOCATION, location)
+		CACHE_db = leveldb.LevelDB(CACHE_LOCATION)
+
+		return CACHE_LOCATION, CACHE_db
+
+	"""
+	getCurrentMempool
+
+	Get a list of sets of all mempool transactions currently in cache.
+	"""
+	def getCurrentMempool(self):
+		MEMPOOL_LOCATION, db = self.getPaths('mempool')
+
+		all_transactions_available = list(db.RangeIter(include_value=True, reverse=False))
+		return [json.loads(bytes(x[1]).decode('utf-8')) for x in all_transactions_available]
 
 	"""
 	Block tamper
@@ -124,22 +153,14 @@ class MinerClient:
 	"""
 	def getNewestBlock(self):
 		# open cache
-		HOME = os.path.expanduser('~')
-		CACHE_FOLDER = os.path.join(HOME, 'Library')
-		CACHE_LOCATION = os.path.join(CACHE_FOLDER, "Gemcoin")
-		HEADERS_LOCATION = os.path.join(CACHE_LOCATION, "headers")
-		db = leveldb.LevelDB(HEADERS_LOCATION)
+		HEADERS_LOCATION, db = self.getPaths("headers")
 
 		newestHeader = list(list(db.RangeIter(include_value=True, reverse=True))[0])[1].decode('utf-8')
 		return newestHeader
 
 	def getNewestDifficulty(self):
 		# open cache
-		HOME = os.path.expanduser('~')
-		CACHE_FOLDER = os.path.join(HOME, 'Library')
-		CACHE_LOCATION = os.path.join(CACHE_FOLDER, "Gemcoin")
-		HEADERS_LOCATION = os.path.join(CACHE_LOCATION, "headers")
-		db = leveldb.LevelDB(HEADERS_LOCATION)
+		HEADERS_LOCATION, db = self.getPaths("headers")
 
 		newestHeader = list(list(db.RangeIter(include_value=True, reverse=True))[0])[1].decode('utf-8')
 		decoded_header = DeconstructBlockHeader(newestHeader)
@@ -153,18 +174,14 @@ class MinerClient:
 	""" returns the block reward at the moment of the chain """
 	def getCurrentBlockReward(self):
 		# open cache
-		HOME = os.path.expanduser('~')
-		CACHE_FOLDER = os.path.join(HOME, 'Library')
-		CACHE_LOCATION = os.path.join(CACHE_FOLDER, "Gemcoin")
-		HEADERS_LOCATION = os.path.join(CACHE_LOCATION, "headers")
-		db = leveldb.LevelDB(HEADERS_LOCATION)
+		HEADERS_LOCATION, db = self.getPaths("headers")
 
 		# iterate the chain
-		lengthOfChain = len(db.RangeIter(include_value=False, reverse=False))
+		lengthOfChain = len(list(db.RangeIter(include_value=False, reverse=False)))
 
 		# check logic
 		#TODO: Change the 0 from 0 to self.currentCoinsInSupply
-		if 0 < 60000000*10**14 # shards
+		if 0 < 60000000*10**14:# shards
 			phase = lengthOfChain // 20000
 			initial_block_reward = 5 * 100
 			return initial_block_reward / (2 ** phase)
@@ -189,7 +206,7 @@ class MinerClient:
 		# construct the tx set
 		coinbase_tx = ConstructTransaction(
 			version=Common.Genesis().version,
-			workFees=0,
+			workFee=0,
 			timestamp=int(datetime.utcnow().timestamp()),
 			fromAddr=fromAddr,
 			toAddr=fromAddr,
@@ -204,7 +221,11 @@ class MinerClient:
 			previous_hash=dhash(self.getNewestBlock()),
 			mix_hash=merkle_hash(mlist),
 			timestamp=int(datetime.utcnow().timestamp()),
-			targetEncoded=self.getNewestDifficulty()# make the target
+			targetEncoded=self.getNewestDifficulty(),
+			nonce=0,
+			num=int(DeconstructBlockHeader(self.getNewestBlock())['num']) + 1,
+			txHash=dhash(coinbase_tx),
+			uncleRoot=fromAddr[2:]
 		)
 
 		DONE = False
@@ -267,5 +288,6 @@ if __name__ == "__main__":
 
 miner_addr = "0x0000000000000"
 mc = MinerClient()
+
 # TODO: Design the mempool
-mc.start_mining(mempool, chain_cache, miner_addr)
+mc.start_mining(miner_addr)

@@ -1,4 +1,5 @@
 import sys, os
+import json
 
 # import functions from parent
 p = os.path.abspath('../..')
@@ -17,6 +18,34 @@ Only implementing fast-node verification. This is because I don't have the intel
 
 All functions concerning the sync status of an inbound node
 """
+
+"""
+Spawn
+
+Interpreter instance of the payload sent (runs payload code until electricity runs out)
+"""
+class Spawn(object):
+	def __init__(self, obj):
+		self.capability = obj[0]
+		try:
+			self.data = obj[1]
+		except Exception:
+			self.data = None
+
+class Send(object):
+	def __init__(self, src_node, dest_node, dhkey):
+		self.src_node = src_node
+		self.dhkey = dhkey
+
+	# Sends a Hello Package to destination node
+	def sendHello(capability: list, dest_addr: str):
+		payload = Hello(self.src_node.VERSION, self.src_node.id[3], capability, self.dhkey)
+		self.src_node.send_to_node(dest_node, payload)
+
+	# Spawns (starts a new instance of) a thread based on capability
+	def spawn(capability: list):
+		return Spawn(capability)
+
 class RequestBlocks(object):
 	def __init__(self, src_node, dest_node, dhkey):
 		self.src_node = src_node
@@ -38,6 +67,13 @@ class RequestBlocks(object):
 	def subprotocolRequest(self, bytecode: bytes):
 		payload = Hello(self.src_node.VERSION, self.src_node.id[3], ['0x03', [bytecode]], self.dhkey)
 		self.src_node.send_to_node(self.dest_node, payload)
+
+class Transaction(object):
+	def __init__(self, src_node, dest_node, dhkey):
+		self.src_node = src_node
+		self.dest_node = dest_node
+		self.dhkey = dhkey
+
 
 """
 Request Handler
@@ -92,3 +128,72 @@ class RequestHandler(object):
 					except Exception as e:
 						panic("Interrupting large download. Will start where left off on next start.")
 						panic(f"Error: {e}")
+
+			# sender reads bytecode, doesn't need to respond. If is full node, will add the bytecode to the state.
+			if x == '0x0f':
+				pass
+
+	# pulls apart raw tx, confirms sender with ecdsa signature, and broadcasts updated transaction to other nodes
+	def addToMempool(self, recvd):
+		# check if raw tx first
+		msg = recvd[0]
+		version = recvd[1]
+		publicAddr = recvd[2]
+		data = json.loads(recvd[3])
+
+
+	"""
+	# Pulls apart transaction, confirms sender with ECDSA key verification, and broadcasts transaction to other nodes
+	def addToMempool(self, recvd):
+		msg = recvd[0]
+		version = recvd[1]
+		publicAddr = recvd[2]
+
+		# data is serialized
+		data = recvd[3]
+		raw_data = json.loads(recvd[3])
+
+	"""
+	"""
+		{
+		txIn:{
+			"version": 20,
+			"nonce"  : 0,
+			"workFee": n,
+			"timestamp": 42342,
+			"fromAddr": 0x9340294032da89,
+			"toAddr": 0x098403802aaa,
+			"value": 32,
+			"data": 0x00...
+		}
+		txOut: {
+			'v': version
+			'r': 32 bytes
+			's': other 32 bytes
+		}
+	"""
+	"""
+
+		txOut   = raw_data['txOut']
+		v, r, s = txOut['v'], txOut['r'], txOut['s']
+
+		# validation process here (check that the signature matches, prove that the private address signed the transaction)
+		if True:
+			cache = Cache('mempool')
+			
+
+		txIn      = raw_data['txIn']
+		version   = txIn['version']
+		nonce     = txIn['nonce']
+		workFee   = txIn['workFee']
+		timestamp = txIn['timestamp']
+		fromAddr  = txIn['fromAddr']
+		toAddr    = txIn['toAddr']
+		value     = txIn['value']
+
+		data      = txIn['data']
+		if '0x00' in data[0:3]:
+			data  = TRANSACTION(fromAddr, toAddr, v, r, s)
+		else:
+			data  = COMPILER(data)
+	"""

@@ -3,7 +3,7 @@ This is not a working project at the moment. When a full release is pushed, this
 
 ----
 
-![gemcoin logo](https://github.com/vladusatii/gemcoin/blob/main/gemcoin_logo.png?raw=true)
+![gemcoin logo](https://github.com/vladusatii/gemcoin/blob/main/aprilGemcoinLogo.png?raw=true)
 
 A Turing-complete, general-purpose blockchain. Gas fees are dumb, so we switched to electric.
 

@@ -3,6 +3,18 @@
 # installs all dependencies
 pip install -r requirements.txt;
 
-# remember to execute setup.sh if you change location of gemcoin
-chosen_path="$PWD";
-echo "alias gemcoin=\'python3 $chosen_path/peers/main.py\'" >> ~/.bash_profile;
+# dir gets absolute path of main.py
+chmod +x dir.py
+chmod +x findmaindir.py
+
+chmod +x peers/main.py
+start_path="$(./dir.py)"
+main_path="$(./findmaindir.py)"
+
+>> ~/gemshortcut.sh
+
+echo "chmod +x ${start_path}; ./${start_path}" > ~/gemshortcut.sh
+echo "./${main_path}" > peers/exec_main.sh;
+
+echo "alias gemcoin='(cd ~ ; ./gemshortcut.sh )'" >> ~/.bash_profile;
+echo "All done. Type 'gemcoin' into Terminal to start the peer."

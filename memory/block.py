@@ -115,28 +115,22 @@ def ConstructBlockHeader(version: int, previous_hash: hex, mix_hash: hex, timest
 	nonce         = formatHeaderInput(nonce, 4, "nonce")
 	num           = formatHeaderInput(num, 4, "num")
 
-	# char[32] spec and pad
-	"""
-	if int(num) == 0:
-		txHash    = formatHeaderInput(txHash, 188, "genesisConfigTxHash")
-	else:
-	"""
 	txHash    = formatHeaderInput(txHash, 32, "txHash")
 
 	# if another node finds the block at the same exact time as you, whoever did more work gets 3/4ths of the reward. uncleRoot = unclePubKey + electricityConstant
 	uncleRoot     = formatHeaderInput(uncleRoot, 32, "uncleRoot")
 
-	fixedIndex = version + previous_hash + mix_hash + timestamp + targetEncoded + nonce + num + txHash + uncleRoot
+	# Error checking before fixedIndex
+	refs = [version, previous_hash, mix_hash, timestamp, targetEncoded, nonce, num, txHash, uncleRoot]
+	for index, x in enumerate(refs):
+		if x is None:
+			print(f'{index} is NoneType. Please revise variable {x}.')
 
-	# check if genesis, if so, change fixed width
-	"""
-	if int(num) == 0:
-		if len(fixedIndex) == 664:
-			return fixedIndex
-	else:
-	"""
+	fixedIndex = version + previous_hash + mix_hash + timestamp + targetEncoded + nonce + num + txHash + uncleRoot
 	if len(fixedIndex) == 352:
 		return fixedIndex
+	else:
+		print(len(fixedIndex), "is actual len.")
 
 """
 DeconstructBlockHeader
@@ -165,24 +159,11 @@ def DeconstructBlockHeader(BlockHeader: str):
 	num = BlockHeader[216:224]
 	num = int(f'0x{num}', 16)
 
-	# genesis block is 556 bytes, normal blocks are 176 bytes
-	"""
-	if num == 0:
-		a1, a2 = 224, 600
-		b1, b2 = 600, 664
-	else:
-	"""
 	a1, a2 = 224, 288
 	b1, b2 = 288, 352
 
 	txHash = BlockHeader[a1:a2]
 
-	"""
-	if int(num) == 0:
-		txHash = bytes.fromhex(txHash)
-		txHash = txHash.decode('utf-8')
-	else:
-	"""
 	txHash = f'0x{txHash}'
 
 	uncleRoot = BlockHeader[b1:b2]
@@ -223,12 +204,12 @@ A construction of a transaction does the following:
 	nonce,
 	fromAddr,
 	toAddr
-	}
+}
 
 workFee <-- F(electricity) (the lower the F(electricity) for sending the transaction, the longer it will take to process the transaction)
 
 """
-def ConstructTransaction(version, workFee, timestamp, fromAddr, toAddr, value):
+def ConstructTransaction(version, workFee, timestamp, fromAddr, toAddr, value, data='0x00'):
 	assert int(version) == 20, "ERROR: Version must match genesis version."
 	# int32_t 4 byte spec and pad
 	version       = formatHeaderInput(version, 4, "version")
@@ -246,13 +227,16 @@ def ConstructTransaction(version, workFee, timestamp, fromAddr, toAddr, value):
 
 	value = str(value) # value input must be in shards
 
+	# nonce will increment once accepted and validated
 	payload = {
 		"version": version,
+		"nonce": '0x00',
 		"workFee": electricFee,
 		"timestamp": timestamp,
 		"fromAddr": fromAddr,
 		"toAddr": toAddr,
-		"value": value
+		"value": value,
+		"data": data
 	}
 
 	return payload
