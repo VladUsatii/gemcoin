@@ -48,6 +48,8 @@ class Node(threading.Thread):
 		self.nodes_outbound = []  # Nodes that we are connected to (US)->N
 		self.reconnect_to_nodes = []
 
+		self.region = self.getRegion()
+
 		self.connected = len(self.nodes_inbound) + len(self.nodes_outbound)
 		self.tried     = 0
 		self.banned    = 0
@@ -76,6 +78,15 @@ class Node(threading.Thread):
 		self.max_connections = max_connections
 
 		self.debug = True
+
+	def getRegion(self):
+		import urllib.request as regioner
+		import requests
+
+		external_ip = regioner.urlopen('https://ident.me').read().decode('utf8')
+		response = requests.get(f"https://geolocation-db.com/json/{external_ip}&position=true").json()
+
+		return response
 
 	@property
 	def all_nodes(self):
@@ -294,7 +305,7 @@ class Node(threading.Thread):
 	def run(self):
 		while not self.TERMINATE.is_set():  # Check whether the thread needs to be closed
 			try:
-				self.debug_print("Node: Wait for incoming connection")
+				self.debug_print(f"(VERBOSE) Searching Region: {self.region}")
 				connection, client_address = self.sock.accept()
 
 				self.debug_print("Total inbound connections:" + str(len(self.nodes_inbound)))

@@ -161,7 +161,7 @@ class srcNode(Node):
 			bye = Bye(0x00, session_dhkey)
 			self.src_node.send_to_node(node, bye)
 
-		""" "Bye" Opcode handler """
+		""" 'Bye' Opcode handler """
 		if message[0] == '0x01':
 			disconnect_reason = {
 				'0x00': 'Requested to disconnect.',
