@@ -44,7 +44,7 @@ class Node(threading.Thread):
 		self.latest_block_number = 0
 		self.latest_block_hash   = ""
 
-		self.nodes_inbound = []  # Nodes that are connect with us N->(US)
+		self.nodes_inbound = []  # Nodes that are connected with us N->(US)
 		self.nodes_outbound = []  # Nodes that we are connected to (US)->N
 		self.reconnect_to_nodes = []
 
@@ -82,11 +82,12 @@ class Node(threading.Thread):
 	def getRegion(self):
 		import urllib.request as regioner
 		import requests
+		import json
 
 		external_ip = regioner.urlopen('https://ident.me').read().decode('utf8')
 		response = requests.get(f"https://geolocation-db.com/json/{external_ip}&position=true").json()
 
-		return response
+		return "\n" + json.dumps(response, indent=4, sort_keys=False)
 
 	@property
 	def all_nodes(self):

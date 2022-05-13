@@ -103,9 +103,15 @@ def ConstructBlockHeader(version: int, previous_hash: hex, mix_hash: hex, timest
 	version       = formatHeaderInput(version, 4, "version")
 
 	# char[32] spec and pad
-	previous_hash = formatHeaderInput(previous_hash, 32, "previous_hash")
+	if len(previous_hash) == 64:
+		previous_hash = str(previous_hash)
+	else:
+		previous_hash = formatHeaderInput(previous_hash, 32, "previous_hash")
 
-	mix_hash      = formatHeaderInput(mix_hash, 32, "mix_hash")
+	if len(mix_hash) == 64:
+		mix_hash = str(mix_hash)
+	else:
+		mix_hash      = formatHeaderInput(mix_hash, 32, "mix_hash")
 
 	# str(uint256_t) byte spec and pad
 	timestamp     = formatHeaderInput(timestamp, 32, "timestamp", True)
@@ -115,16 +121,24 @@ def ConstructBlockHeader(version: int, previous_hash: hex, mix_hash: hex, timest
 	nonce         = formatHeaderInput(nonce, 4, "nonce")
 	num           = formatHeaderInput(num, 4, "num")
 
-	txHash    = formatHeaderInput(txHash, 32, "txHash")
+	if len(txHash) == 64:
+		txHash = str(txHash)
+	else:
+		txHash    = formatHeaderInput(txHash, 32, "txHash")
 
 	# if another node finds the block at the same exact time as you, whoever did more work gets 3/4ths of the reward. uncleRoot = unclePubKey + electricityConstant
 	uncleRoot     = formatHeaderInput(uncleRoot, 32, "uncleRoot")
+	if uncleRoot is None:
+		uncleRoot = '0'.zfill(64)
 
 	# Error checking before fixedIndex
 	refs = [version, previous_hash, mix_hash, timestamp, targetEncoded, nonce, num, txHash, uncleRoot]
 	for index, x in enumerate(refs):
 		if x is None:
+			print(x)
 			print(f'{index} is NoneType. Please revise variable {x}.')
+		else:
+			print(x)
 
 	fixedIndex = version + previous_hash + mix_hash + timestamp + targetEncoded + nonce + num + txHash + uncleRoot
 	if len(fixedIndex) == 352:

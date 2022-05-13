@@ -31,6 +31,13 @@ class Spawn(object):
 			self.data = obj[1]
 		except Exception:
 			self.data = None
+		self.interpreter(self.capability, self.data)
+
+	# starts new VM instance
+	def interpreter(self, capability, data):
+		pass
+
+
 
 class Send(object):
 	def __init__(self, src_node, dest_node, dhkey):
@@ -40,11 +47,14 @@ class Send(object):
 	# Sends a Hello Package to destination node
 	def sendHello(capability: list, dest_addr: str):
 		payload = Hello(self.src_node.VERSION, self.src_node.id[3], capability, self.dhkey)
-		self.src_node.send_to_node(dest_node, payload)
+		self.src_node.send_to_node(dest_addr, payload)
 
 	# Spawns (starts a new instance of) a thread based on capability
 	def spawn(capability: list):
 		return Spawn(capability)
+
+
+
 
 class RequestBlocks(object):
 	def __init__(self, src_node, dest_node, dhkey):

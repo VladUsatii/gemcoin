@@ -214,14 +214,16 @@ class MinerClient:
 		)
 		mlist.insert(0, coinbase_tx) # the 0'th index is checked, error SentToSelf is ignored because BPEV allows custom alloc
 
+		print(fromAddr[2:])
+
 		block_nonce = 0
 		# construct the block header for mining
 		block_header = ConstructBlockHeader(
-			version=Common.Genesis().version,
-			previous_hash=dhash(self.getNewestBlock()),
-			mix_hash=merkle_hash(mlist),
+			version=int(Common.Genesis().version),
+			previous_hash=str(dhash(self.getNewestBlock())),
+			mix_hash=str(merkle_hash(mlist)),
 			timestamp=int(datetime.utcnow().timestamp()),
-			targetEncoded=self.getNewestDifficulty(),
+			targetEncoded=int(self.getNewestDifficulty()),
 			nonce=0,
 			num=int(DeconstructBlockHeader(self.getNewestBlock())['num']) + 1,
 			txHash=dhash(coinbase_tx),
@@ -231,60 +233,21 @@ class MinerClient:
 		DONE = False
 		for n in range(2**64):
 			block_nonce = n
-			block_header[208:216] = formatHeaderInput(block_nonce, 4, "guessNonce")
+
+			# split the block header into pieces
+			formattedNonce = formatHeaderInput(block_nonce, 4, "guessNonce")
+			block_header = block_header[:208] + formattedNonce + block_header[216:]
 			hashed_block_header = dhash(block_header)
 
 			if self.isProperDifficulty(hashed_block_header):
 				block = ConstructBlock(header=block_header, transactions=mlist)
 				DONE = True
+				print(f"Successfully mined a block with valid nonce {formattedNonce} on the mainnet. Validating proof. Asking clients.")
 				break
+			else:
+				print(f"Guess #{n}")
 		if not DONE:
 			print("Exhausted all values without finding a hash. Please make sure to sync your chain before mining.")
-
-# Prototype -- not production code
-"""
-def proof_of_work(prototype, level=1, verbose=False):
-	count = 0
-	while True:
-		for y in range(0, 256):
-			for x in range(0, 256):
-				h = hashlib.sha256('{0}{1}'.format(prototype, chr(x)).encode('utf-8')).hexdigest()
-				count += 1
-				if verbose:
-					print("Try: {0} - {1}".format(count, h))
-				if h[0:level] == ('0' * level):
-					print("Coin costed {0} tests.".format(count))
-					return
-			prototype = "{0}{1}".format(prototype, chr(y))
-
-
-if __name__ == "__main__":
-	# if the difficulty is more than 2 times as big as the last mining difficulty, damp it by .5
-	change_threshold = 2
-
-	difficulty = 4
-	convergence_time = 5
-	verbose = False
-
-	while True:
-		print(f"Difficulty: {difficulty}")
-		args = ["fdsa", difficulty, verbose]
-
-		# calculate the time it takes and adjust difficulty
-
-		start_time       = time.time()
-		proof_of_work(args[0], args[1], args[2])
-		end_time         = time.time()
-
-		if end_time - start_time > convergence_time or end_time - start_time < convergence_time:
-			old_diff = difficulty
-			difficulty = int(difficulty * (convergence_time/(end_time-start_time)))
-			while difficulty / old_diff > change_threshold:
-				print(difficulty)
-				difficulty = int(old_diff * (convergence_time/(end_time-start_time) * 0.25))
-		else:
-			difficulty = difficulty
-"""
 
 miner_addr = "0x0000000000000"
 mc = MinerClient()
