@@ -80,6 +80,7 @@ class Node(threading.Thread):
 		self.debug = True
 
 	def getRegion(self):
+		"""
 		import urllib.request as regioner
 		import requests
 		import json
@@ -88,6 +89,8 @@ class Node(threading.Thread):
 		response = requests.get(f"https://geolocation-db.com/json/{external_ip}&position=true").json()
 
 		return "\n" + json.dumps(response, indent=4, sort_keys=False)
+		"""
+		return "None"
 
 	@property
 	def all_nodes(self):
