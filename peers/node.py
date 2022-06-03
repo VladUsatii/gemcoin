@@ -230,8 +230,7 @@ class Node(threading.Thread):
 			self.connected_node_ids.append(connected_node_id)
 
 			if self.id[0:1] == connected_node_id[0:1]:
-			#if self.id == connected_node_id:
-				print("connect_with_node: You cannot connect with yourself?!")
+				print("connect_with_node: You cannot connect with yourself.")
 				sock.send("CLOSING: Already having a connection together".encode('utf-8'))
 				sock.close()
 				return True

@@ -75,6 +75,6 @@ def isValidElectricFee(transaction: dict):
 
 # check if user has sufficient balance (reference txOut)
 def hasSufficientBalance(transaction: dict):
-	
+	maxBalanceDiff = 0
 
 

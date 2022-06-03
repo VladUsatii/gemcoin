@@ -221,9 +221,13 @@ A construction of a transaction does the following:
 }
 
 workFee <-- F(electricity) (the lower the F(electricity) for sending the transaction, the longer it will take to process the transaction)
-
 """
-def ConstructTransaction(version, workFee, timestamp, fromAddr, toAddr, value, data='0x00'):
+
+# NOTE: ( PATCH 0.1.1)
+"""
+Signs the transaction with r, s offline (external modification) --> when received and validated, the original message gets, r, s appended
+"""
+def ConstructTransaction(version, workFee, timestamp, fromAddr, toAddr, value, privKey, data='0x00'):
 	assert int(version) == 20, "ERROR: Version must match genesis version."
 	# int32_t 4 byte spec and pad
 	version       = formatHeaderInput(version, 4, "version")

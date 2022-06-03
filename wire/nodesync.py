@@ -1,5 +1,6 @@
 import sys, os
 import json
+import ecdsa
 
 # import functions from parent
 p = os.path.abspath('../..')
@@ -119,12 +120,14 @@ class RequestHandler(object):
 				headers = cache.getAllHeaders()
 
 				for nested_index, header in enumerate(headers):
+					print("SENDING TO NODE: ", header)
 					payload = Hello(self.src_node.VERSION, self.src_node.id[3], ['0x04', [x, nested_index, header]], self.dhkey)
 					self.src_node.send_to_node(self.dest_node, payload)
 
 
 			# sender responds to the receiver's ACK
 			if x == '0x04':
+				print("RECEIVED: ", recvd[3])
 				if type(recvd[3][index+1]) is list and len(recvd[3][index+1]) == 3:
 					try:
 						subop, index, data = recvd[3][index+1][::]
@@ -150,6 +153,8 @@ class RequestHandler(object):
 		version = recvd[1]
 		publicAddr = recvd[2]
 		data = json.loads(recvd[3])
+
+		
 
 
 	"""

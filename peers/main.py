@@ -109,7 +109,7 @@ def node_connected(self, node, connection_type: str):
 					main()
 
 		# Inbound nodes (someone connect to us, how do we respond?)
-		# We don't respond HERE, we respond in node_message() <-- node.py
+		# NOTE: We don't respond HERE, we respond in node_message() <-- node.py
 
 """
 srcNode
