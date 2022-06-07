@@ -153,7 +153,7 @@ class RequestHandler(object):
 		msg = recvd[0]
 		version = recvd[1]
 		publicAddr = recvd[2]
-		data = json.loads(recvd[3])
+		#data = json.loads(recvd[3])
 
 
 	"""
