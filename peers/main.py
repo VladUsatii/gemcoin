@@ -184,15 +184,24 @@ class srcNode(Node):
 		if message[0] == '0x00':
 			connect_reason = {
 				'0x00': rqb.handler(message),
+				'0': rqb.handler(message),
+
 				'0x04': rqb.handler(message),
+				'4': rqb.handler(message),
+
 				'0x0a': rqb.addToMempool(message),
-				'0x0f': rqb.customHandler(message)
+				'10': rqb.addToMempool(message),
+
+				'0x0f': rqb.customHandler(message),
+				'15': rqb.customHandler(message)
 			}
 
 			try:
-				connect_reason[message[3]]
+				connect_reason[message[3][1]]
 			except Exception as e:
 				panic(f"Hit a snag (Error: {e}).")
+				print(traceback.format_exc())
+				warning("Stopping header sync.")
 
 	def node_disconnect_with_outbound_node(self, node):
 		print("node wants to disconnect with oher outbound node: (" + self.id[0] + "): " + node.id[0])

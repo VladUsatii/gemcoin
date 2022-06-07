@@ -114,7 +114,7 @@ class RequestHandler(object):
 			# TODO: check node type HERE
 
 			# receiver responding to opcodes here
-			if x == '0x00':
+			if x == '0x00' or x == '0':
 				cache = Cache('headers')
 				headers = cache.getAllHeaders()
 
@@ -125,7 +125,7 @@ class RequestHandler(object):
 
 
 			# sender responds to the receiver's ACK
-			if x == '0x04':
+			if x == '0x04' or x == '4':
 				print("RECEIVED: ", recvd[3])
 				if type(recvd[3][index+1]) is list and len(recvd[3][index+1]) == 3:
 					try:
@@ -142,7 +142,7 @@ class RequestHandler(object):
 						panic(f"Error: {e}")
 
 			# sender reads bytecode, doesn't need to respond. If is full node, will add the bytecode to the state.
-			if x == '0x0f':
+			if x == '0x0f' or x == '15':
 				pass
 
 	# pulls apart raw tx, confirms sender with ecdsa signature, and broadcasts updated transaction to other nodes
