@@ -43,6 +43,7 @@ class Spawn(object):
 class Send(object):
 	def __init__(self, src_node, dest_node, dhkey):
 		self.src_node = src_node
+		self.src_node.VERSION = 20
 		self.dhkey = dhkey
 
 	# Sends a Hello Package to destination node
@@ -60,6 +61,7 @@ class Send(object):
 class RequestBlocks(object):
 	def __init__(self, src_node, dest_node, dhkey):
 		self.src_node = src_node
+		self.src_node.VERSION = 20
 		self.dest_node = dest_node
 		self.dhkey = dhkey
 
@@ -68,7 +70,7 @@ class RequestBlocks(object):
 		self.src_node.send_to_node(self.dest_node, payload)
 
 	def requestNewHeaders(self, currentBlockNum):
-		payload = Hello(self.src_node.VERSION, self.src_node.id[3], ['0x01', [currentBlockNum]], self.dhkey)
+		payload = Hello(self.src_node.VERSION, self.src_node.id[3], ['0x01', currentBlockNum], self.dhkey)
 		self.src_node.send_to_node(self.dest_node, payload)
 
 	def requestBlocks(self):
@@ -82,6 +84,7 @@ class RequestBlocks(object):
 class Transaction(object):
 	def __init__(self, src_node, dest_node, dhkey):
 		self.src_node = src_node
+		self.src_node.VERSION = 20
 		self.dest_node = dest_node
 		self.dhkey = dhkey
 
@@ -100,6 +103,7 @@ Request -> Request Handler -> *Request Received
 class RequestHandler(object):
 	def __init__(self, src_node, dest_node, dhkey):
 		self.src_node = src_node
+		self.src_node.VERSION = 20
 		self.dest_node = dest_node
 		self.dhkey = dhkey
 

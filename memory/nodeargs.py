@@ -46,6 +46,8 @@ Hello 0x00
 pack(pad([msg_id: 0x00]) || [version: 20, address: gemnode://address, capabilities: [capability-id, ...])
 """
 def Hello(version, address, capabilities, secret_key=None):
+	# TODO: This is only a test line; remove when done.
+	version = 20
 	if int(version) != 20:
 		panic("Use Gemcoin Genesis version.")
 		pass

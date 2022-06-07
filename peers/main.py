@@ -17,6 +17,7 @@ Startpoint of the Gemcoin protocol.
 
 """
 # general imports
+import traceback
 import socket
 import sys, os
 import time
@@ -103,10 +104,14 @@ def node_connected(self, node, connection_type: str):
 			if self.task_args[0] == "SYNC_BLOCKS":
 				try:
 					# feed the packet your current block number and hash
-					rqb.requestNewHeaders(self.task_args[1], self.task_args[2])
-				except:
+
+					rqb.requestNewHeaders(self.task_args[1])
+					#rqb.requestNewHeaders(self.task_args[1], self.task_args[2])
+				except Exception as e:
+					print(f"Dang. Hit a snag: {e}")
+					print(traceback.format_exc())
 					warning("Stopping header sync.")
-					main()
+					#main()
 
 		# Inbound nodes (someone connect to us, how do we respond?)
 		# NOTE: We don't respond HERE, we respond in node_message() <-- node.py
