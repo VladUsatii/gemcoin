@@ -109,9 +109,6 @@ class RequestHandler(object):
 
 	# 2-3 (Handle, send, handle receiver data)
 	def handler(self, recvd):
-		# check version
-		if self.src_node.VERSION != recvd[1]:
-			self.send("ERROR: Mismatched versions. Can't continue.")
 
 		# read capabilities and handle appropriately
 		for index, x in enumerate(recvd[3]):
@@ -157,8 +154,6 @@ class RequestHandler(object):
 		version = recvd[1]
 		publicAddr = recvd[2]
 		data = json.loads(recvd[3])
-
-		
 
 
 	"""
