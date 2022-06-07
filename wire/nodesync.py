@@ -18,13 +18,11 @@ NOTE:
 Only implementing fast-node verification. This is because I don't have the intellect to program state trie verification.
 
 All functions concerning the sync status of an inbound node
-"""
 
-"""
 Spawn
 
 Interpreter instance of the payload sent (runs payload code until electricity runs out)
-"""
+
 class Spawn(object):
 	def __init__(self, obj):
 		self.capability = obj[0]
@@ -54,7 +52,7 @@ class Send(object):
 	# Spawns (starts a new instance of) a thread based on capability
 	def spawn(capability: list):
 		return Spawn(capability)
-
+"""
 
 
 
@@ -155,6 +153,8 @@ class RequestHandler(object):
 		publicAddr = recvd[2]
 		#data = json.loads(recvd[3])
 
+	def customHandler(self, recvd):
+		pass
 
 	"""
 	# Pulls apart transaction, confirms sender with ECDSA key verification, and broadcasts transaction to other nodes
