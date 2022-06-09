@@ -50,7 +50,7 @@ class Node(threading.Thread):
 
 		self.region = self.getRegion()
 
-		self.connected = len(self.nodes_inbound) + len(self.nodes_outbound)
+		self.connected = 0
 		self.tried     = 0
 		self.banned    = 0
 
@@ -249,7 +249,7 @@ class Node(threading.Thread):
 				return True
 
 			for node in self.nodes_inbound:
-				if node.host == host and node.id[0] == connected_node_id[0]:
+				if node.host == host and node.id[2] == connected_node_id[2]:
 					print("connect_with_node: This node (" + node.id[0] + ") is already connected with us.")
 					sock.send("CLOSING: Already having a connection together".encode('utf-8'))
 					sock.close()
@@ -260,6 +260,9 @@ class Node(threading.Thread):
 
 			self.nodes_outbound.append(thread_client)
 			self.outbound_node_connected(thread_client)
+
+			self.connected += 1
+			self.tried += 1
 
 			return thread_client
 		except ConnectionRefusedError:
@@ -275,6 +278,7 @@ class Node(threading.Thread):
 		if node in self.nodes_outbound:
 			self.node_disconnect_with_outbound_node(node)
 			node.stop()
+			self.connected -= 1
 			self.VERACK = False
 		else:
 			self.debug_print("Node disconnect_with_node: cannot disconnect with a node with which we are not connected.")
@@ -331,7 +335,6 @@ class Node(threading.Thread):
 					connection.close()
 
 			except socket.timeout:
-				self.debug_print('Node: Connection timeout!')
 				self.tried += 1
 				info(f"Connecting to nearby peers               {Color.GREEN}connected{Color.END}={self.connected} {Color.GREEN}attempted{Color.END}={self.tried} {Color.GREEN}banned{Color.END}={self.banned}")
 			except Exception as e:
