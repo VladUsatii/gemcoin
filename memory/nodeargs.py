@@ -60,6 +60,15 @@ def Hello(version, address, capabilities, secret_key=None):
 	return pack(['0x00', version, address, capabilities], secret_key)
 
 """
+IMPORTANT TESTCASE: (remember not to nest lists more than once)
+
+x = Hello(20, '0x0fdafafaf', ['0x00', 'fdsa', 'fdsa', 'fdsfdsafd'], 2)
+print(x)
+print(unpack(x, 2))
+
+"""
+
+"""
 Bye
 
 pack([msg_id: 0x01] + reason)

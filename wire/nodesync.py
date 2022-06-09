@@ -76,7 +76,7 @@ class RequestBlocks(object):
 		self.src_node.send_to_node(self.dest_node, payload)
 
 	def subprotocolRequest(self, bytecode: bytes):
-		payload = Hello(self.src_node.VERSION, self.src_node.id[3], ['0x03', [bytecode]], self.dhkey)
+		payload = Hello(self.src_node.VERSION, self.src_node.id[3], ['0x03', bytecode], self.dhkey)
 		self.src_node.send_to_node(self.dest_node, payload)
 
 class Transaction(object):
@@ -118,18 +118,25 @@ class RequestHandler(object):
 				cache = Cache('headers')
 				headers = cache.getAllHeaders()
 
+
+				"""
+				Hello message SHOULD look like -->
+				['0x00', '20', '0x0..', ['0x04', 'packet', 'index_of_packet', 'header_body']]
+
+				"""
 				for nested_index, header in enumerate(headers):
 					print("SENDING TO NODE: ", header)
-					payload = Hello(self.src_node.VERSION, self.src_node.id[3], ['0x04', [x, nested_index, header]], self.dhkey)
+					payload = Hello(self.src_node.VERSION, self.src_node.id[3], ['0x04', x, nested_index, header], self.dhkey)
 					self.src_node.send_to_node(self.dest_node, payload)
 
 
 			# sender responds to the receiver's ACK
 			if x == '0x04' or x == '4':
 				print("RECEIVED: ", recvd[3])
-				if type(recvd[3][index+1]) is list and len(recvd[3][index+1]) == 3:
+				#if type(recvd[3][index+1]) is list and len(recvd[3][index+1]) == 3:
+				if type(recvd[3]) is list and len(recvd[3][1:]) == 3:
 					try:
-						subop, index, data = recvd[3][index+1][::]
+						subop, index, data = recvd[3][1:]
 
 						# how a sender handles the data he requested
 						if subop == '0x00':
