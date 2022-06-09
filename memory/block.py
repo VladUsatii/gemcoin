@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """
 Helpful block terminology:
 
@@ -26,8 +27,6 @@ FuncRoot      : Arbitrary functions defined locally that apply to the chain's lo
   * General-purpose example: User A wants to make a Spread transaction (transact coin to a party of users). The function is Spread(src_node_addr, [list_of_pub_addrs]). Spread arg[1] takes up 1 MB and thus is extremely expensive.
 StateRoot     : State of the system; account balances, contracts, code, account nonces are serialized inside.
 
-
-
 """
 import binascii
 import hashlib
@@ -53,6 +52,7 @@ if p not in sys.path:
 from gemcoin.peers.packerfuncs import *
 from gemcoin.memory.utils import *
 from gemcoin.prompt.color import *
+from gemcoin.prompt.errors import *
 
 # FUNCTIONS FOR BLOCK HEADER
 
@@ -281,6 +281,13 @@ class Cache(object):
 
 		self.DB = leveldb.LevelDB(self.cachePATH)
 
+	# Generic function to decode all raw data recovered from the LevelDB storage
+	def decodeObjectTypes(self, raw):
+		try:
+			return json.loads(bytes(list(raw)[0][1]))
+		except:
+			panic("Requested data was not decodable by known Gemcoin type standards.")
+
 	def getAllHeaders(self): # returns encoded list of all headers
 		listed = list(self.DB.RangeIter(include_value=True, reverse=False))
 		copy_list = [[bytes(x[0]), bytes(x[1])] for x in listed]
@@ -319,6 +326,34 @@ class Cache(object):
 		newlist = sorted(transactions, key=itemgetter('workFee'), reverse=True)
 		return newlist
 
+
+	"""
+	Find a transaction by any custom ID
+
+	This is especially useful if you want to find every transaction ever made by an account.
+	"""
+	def ReadTransactionByID(self, key: str, value):
+		a = self.DB.RangeIter(include_value=True, reverse=False)
+
+		# put all transactions EVER into a list together (will need to figure out an alternative)
+		b = [json.loads(bytes(x[1])) for x in a]
+		txs = [x['transactions'] for x in b]
+		hexlified_txs = sum(txs, [])
+
+		# complicated reverse hexlification
+		all_txs = [binascii.unhexlify(bytes(x[2:].encode('utf-8'))) for x in hexlified_txs]
+		loaded_txs = [json.loads(x) for x in all_txs]
+		print(loaded_txs)
+
+		# find all transactions by some arbitrary ID (this is a generic function!)
+		try:
+			ids_sort = list(filter(lambda uniqueID: uniqueID[key] == value, loaded_txs))
+			return ids_sort
+		except Exception as e:
+			panic(f"There was an error querying your data. Full error: {e}")
+
+
+
 	""" DB MUST BE HEADERS FOR THE FOLLOWING """
 	""" Read block header data (decodes it into JSON) """
 	def ReadLatestHeaders(self):
@@ -331,11 +366,32 @@ class Cache(object):
 
 	""" DB MUST BE BLOCK FOR THE FOLLOWING """
 	""" Read block data (raw/decoded already) """
-	def ReadLatestBlock(self):
-		return list(self.DB.RangeIter(include_value=True, reverse=True))[0]
+	def ReadLatestBlock(self, decode=False):
+		a = self.DB.RangeIter(include_value=True, reverse=True)
+		if decode:
+			return self.decodeObjectTypes(a)
+		return list(a)[0]
 
-	def ReadOldestBlock(self):
-		return list(self.DB.RangeIter(include_value=True, reverse=False))[0]
+	""" Find a block by any custom IDs """
+	def ReadBlocksByID(self, key: str, value, decode=False):
+		a = self.DB.RangeIter(include_value=True, reverse=False)
+		if decode:
+			b = [json.loads(bytes(x[1])) for x in a]
+			c = []
+			try:
+				for x in b:
+					if x[key] == value:
+						c.append(x)
+				return c
+			except Exception as e:
+				panic("The request is not a valid key in the Block Dictionary.")
+		return a
+
+	def ReadOldestBlock(self, decode=False):
+		a = self.DB.RangeIter(include_value=True, reverse=False)
+		if decode:
+			return self.decodeObjectTypes(a)
+		return list(a)[0]
 
 	""" gets total supply in shards; has to find the 0 index because that is the block reward which determines
 		total supply on the mainnet """
@@ -393,16 +449,34 @@ def ConstructBlock(header: str, transactions: list):
 	return deconstructed_header
 
 """
+# CONSTRUCT TRANSACTIONS AND PUT THEM IN BLOCKS
+
 m = Cache("mempool")
 s = Cache("headers")
 
-blockheader = ConstructBlockHeader(20, hex(0), hex(54354354354), 5435435435, 1, 45435, 4, hex(0), hex(43543))
-transaction1 = ConstructTransaction(20, 23, 2341, "0xdf4a", "daa43aaa", 200)
-transaction2 = ConstructTransaction(20, 25, 235431, "0xdffdaaa", "daa43aaaaaa", 24550)
+# ConstructTransaction(version, workFee, timestamp, fromAddr, toAddr, value, privKey, data='0x00')
+
+blockheader = ConstructBlockHeader(20, hex(5), hex(5434354), 54354435, 14, 64354, 3, hex(1), hex(4543))
+transaction1 = ConstructTransaction(20, 231, 23341, "0xdfdafdfa", "daaaaa", 20430, '0x002000000a')
+transaction2 = ConstructTransaction(20, 221, 2335431, "0xdfff7f7f7f7f7fdaaa", "daa43aaa34aaa", 2434550, '0x0234343')
 
 transaction_dump = [json.dumps(transaction1), json.dumps(transaction2)]
 block = ConstructBlock(blockheader, transaction_dump)
+
 pprint.pprint(block)
+
+blockAdder = Cache("blocks")
+a = blockAdder.Create('1', json.dumps(block), blockAdder.DB)
+print("Did it!")
+
+
+# TEST THE RECOVERY OF CERTAIN TRANSACTIONS
+c1 = Cache("mempool")
+pprint.pprint(c1.GetBiggestTransactions())
+
+c2 = Cache("blocks")
+#pprint.pprint(c2.ReadLatestBlock(True))
+#pprint.pprint(c2.ReadOldestBlock(True))
+
+pprint.pprint(c2.ReadTransactionByID('value', '2434550', True))
 """
-#c1 = Cache("mempool")
-#pprint.pprint(c1.GetBiggestTransactions())

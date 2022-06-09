@@ -64,14 +64,6 @@ To make a private key and submit it to the chain:
 
 [GIP 1](https://github.com/VladUsatii/gemcoin/docs/GIP1.md)
 
-## CLI
-
-To develop on the blockchain, use our CMD tool and port to a language of your choice.
-
-Ported languages so far are listed here:
-
-*None*
-
 ## TODO
 
 Debug and audit my code
