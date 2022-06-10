@@ -117,7 +117,7 @@ class RequestHandler(object):
 			if x == '0x00' or x == '0':
 				cache = Cache('headers')
 				headers = cache.getAllHeaders()
-
+				print(headers)
 
 				"""
 				Hello message SHOULD look like -->
@@ -126,7 +126,7 @@ class RequestHandler(object):
 				"""
 				for nested_index, header in enumerate(headers):
 					print("SENDING TO NODE: ", header)
-					payload = Hello(self.src_node.VERSION, self.src_node.id[3], ['0x04', x, str(nested_index), header], self.dhkey)
+					payload = Hello(self.src_node.VERSION, self.src_node.id[3], ['0x04', str(x), str(nested_index), header[1]], self.dhkey)
 					self.src_node.send_to_node(self.dest_node, payload)
 
 
