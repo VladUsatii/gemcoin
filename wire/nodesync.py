@@ -105,6 +105,8 @@ class RequestHandler(object):
 		self.dest_node = dest_node
 		self.dhkey = dhkey
 
+		self.cache = Cache("headers")
+
 	# 2-3 (Handle, send, handle receiver data)
 	def handler(self, recvd):
 
@@ -115,8 +117,8 @@ class RequestHandler(object):
 
 			# receiver responding to opcodes here
 			if x == '0x00' or x == '0':
-				cache = Cache('headers')
-				headers = cache.getAllHeaders()
+				#cache = Cache('headers')
+				headers = self.cache.getAllHeaders()
 				print(headers)
 
 				"""
@@ -140,8 +142,8 @@ class RequestHandler(object):
 
 						# how a sender handles the data he requested
 						if subop == '0x00' or subop == '0':
-							cache = Cache('headers')
-							cache.Create(index.encode('utf-8'), data.encode('utf-8'), cache.DB)
+							#cache = Cache('headers')
+							self.cache.Create(index.encode('utf-8'), data.encode('utf-8'), self.cache.DB)
 							info(f"Downloaded header			{Color.GREEN}index{Color.END}={index}")
 
 					except Exception as e:
