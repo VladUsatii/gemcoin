@@ -126,7 +126,7 @@ class RequestHandler(object):
 				"""
 				for nested_index, header in enumerate(headers):
 					print("SENDING TO NODE: ", header)
-					payload = Hello(self.src_node.VERSION, self.src_node.id[3], ['0x04', x, nested_index, header], self.dhkey)
+					payload = Hello(self.src_node.VERSION, self.src_node.id[3], ['0x04', x, str(nested_index), header], self.dhkey)
 					self.src_node.send_to_node(self.dest_node, payload)
 
 
@@ -139,7 +139,7 @@ class RequestHandler(object):
 						subop, index, data = recvd[3][1:]
 
 						# how a sender handles the data he requested
-						if subop == '0x00':
+						if subop == '0x00' or subop == '0':
 							cache = Cache('headers')
 							cache.Create(index.encode('utf-8'), data.encode('utf-8'), cache.DB)
 							info(f"Downloaded header			{Color.GREEN}index{Color.END}={index}")
