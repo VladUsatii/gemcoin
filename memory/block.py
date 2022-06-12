@@ -288,8 +288,12 @@ class Cache(object):
 		except:
 			panic("Requested data was not decodable by known Gemcoin type standards.")
 
-	def getAllHeaders(self): # returns encoded list of all headers
-		listed = list(self.DB.RangeIter(include_value=True, reverse=False))
+	def getAllHeaders(self, decode=False): # returns encoded list of all headers
+		if decode:
+			listeddec = self.DB.RangeIter(include_value=True, reverse=True)
+			return [DeconstructBlockHeader(bytes(x[1]).decode('utf-8')) for x in listeddec]
+
+		listed = list(self.DB.RangeIter(include_value=True, reverse=True))
 		copy_list = [[bytes(x[0]), bytes(x[1])] for x in listed]
 		return copy_list
 

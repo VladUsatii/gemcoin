@@ -1,4 +1,6 @@
+#!/usr/bin/env python3
 import sys, os
+import time
 import json
 import ecdsa
 
@@ -124,13 +126,12 @@ class RequestHandler(object):
 				"""
 				Hello message SHOULD look like -->
 				['0x00', '20', '0x0..', ['0x04', 'packet', 'index_of_packet', 'header_body']]
-
 				"""
+
 				for nested_index, header in enumerate(headers):
 					print("SENDING TO NODE: ", header)
 					payload = Hello(self.src_node.VERSION, self.src_node.id[3], ['0x04', str(x), str(nested_index), header[1]], self.dhkey)
 					self.src_node.send_to_node(self.dest_node, payload)
-
 
 			# sender responds to the receiver's ACK
 			if x == '0x04' or x == '4':
