@@ -119,9 +119,7 @@ class RequestHandler(object):
 
 			# receiver responding to opcodes here
 			if x == '0x00' or x == '0':
-				#cache = Cache('headers')
-				headers = self.cache.getAllHeaders()
-				print(headers)
+				headers = self.cache.getAllHeaders(True)
 
 				"""
 				Hello message SHOULD look like -->
@@ -129,23 +127,27 @@ class RequestHandler(object):
 				"""
 
 				for nested_index, header in enumerate(headers):
-					print("SENDING TO NODE: ", header)
-					payload = Hello(self.src_node.VERSION, self.src_node.id[3], ['0x04', str(x), str(nested_index), header[1]], self.dhkey)
-					self.src_node.send_to_node(self.dest_node, payload)
+					if nested_index != 0:
+						print("SENDING TO NODE: ", header)
+						payload = Hello(self.src_node.VERSION, self.src_node.id[3], ['0x04', str(x), str(nested_index), json.dumps(header)], self.dhkey)
+						self.src_node.send_to_node(self.dest_node, payload)
+					time.sleep(2) # 2 second lag remover
 
 			# sender responds to the receiver's ACK
 			if x == '0x04' or x == '4':
 				print("RECEIVED: ", recvd[3])
-				#if type(recvd[3][index+1]) is list and len(recvd[3][index+1]) == 3:
 				if type(recvd[3]) is list and len(recvd[3][1:]) == 3:
 					try:
 						subop, index, data = recvd[3][1:]
+						data = json.loads(data)
 
 						# how a sender handles the data he requested
 						if subop == '0x00' or subop == '0':
-							#cache = Cache('headers')
 							self.cache.Create(index.encode('utf-8'), data.encode('utf-8'), self.cache.DB)
 							info(f"Downloaded header			{Color.GREEN}index{Color.END}={index}")
+
+						# avoid a for loop
+						break
 
 					except Exception as e:
 						panic("Interrupting large download. Will start where left off on next start.")
