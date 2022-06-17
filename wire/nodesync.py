@@ -81,14 +81,6 @@ class RequestBlocks(object):
 		payload = Hello(self.src_node.VERSION, self.src_node.id[3], ['0x03', bytecode], self.dhkey)
 		self.src_node.send_to_node(self.dest_node, payload)
 
-class Transaction(object):
-	def __init__(self, src_node, dest_node, dhkey):
-		self.src_node = src_node
-		self.src_node.VERSION = 20
-		self.dest_node = dest_node
-		self.dhkey = dhkey
-
-
 """
 Request Handler
 
@@ -177,6 +169,10 @@ class RequestHandler(object):
 
 			# sender reads bytecode, doesn't need to respond. If is full node, will add the bytecode to the state.
 			if x == '0x0f' or x == '15':
+				pass
+
+			# TRANSACTION HANDLER
+			if x == '0x05' or x == '5':
 				pass
 
 	# pulls apart raw tx, confirms sender with ecdsa signature, and broadcasts updated transaction to other nodes

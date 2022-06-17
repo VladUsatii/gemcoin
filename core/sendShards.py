@@ -125,19 +125,20 @@ def ConfirmTransactionValidity(signed_tx: dict) -> bool:
 		return False
 
 # In conclusion: the message and public key are the public values. The private key signs the message. The public key verifies that the message digest wasn't tampered with. The digest must pass a rehashing test.
+
 """
-# TEST
-sk = ecdsa.SigningKey.generate(curve=ecdsa.SECP256k1)
-privKey = sk.to_string().hex()
-pubKey = sk.verifying_key.to_string().hex()
+SEND TRANSACTION
 
-# impersonation
-sk2 = ecdsa.SigningKey.generate(curve=ecdsa.SECP256k1)
-privKey2 = sk2.to_string().hex()
-pubKey2 = sk2.verifying_key.to_string().hex()
+Input sig_tx (SIGNED TX) packages into Hello() under subopcode 0x05, sends to destination node.
 
-signed_tx = SignTransaction({'pubKey': pubKey}, privKey)
-pprint(signed_tx)
-
-print(ConfirmTransactionValidity(signed_tx))
 """
+def sendTransaction(sig_tx: dict, src_node, dest_node, dhkey):
+	warning("The transaction must be signed before sending. Did you do so? (y/n)")
+	inp = input("")
+	if inp in ['N', 'n', 'no', 'No', 'nO', 'NO']:
+		panic("Please sign your transaction before sending.")
+	elif inp in ['Y', 'y', 'yes', 'Yes', 'YEs', 'YES', 'yEs', 'yES', 'yeS', 'YeS']:
+		payload = Hello(self.src_node.VERSION, self.src_node.id[3], ['0x05', json.dumps(sig_tx)], dhkey)
+		self.src_node.send_to_node(dest_node, payload)
+	else:
+		warning("Enter y/n")
