@@ -3,6 +3,8 @@ import time
 import threading
 import json
 
+from packerfuncs import *
+
 class NodeConnection(threading.Thread):
 	def __init__(self, main_node, sock, id, host, port):
 		super(NodeConnection, self).__init__()
@@ -53,7 +55,6 @@ class NodeConnection(threading.Thread):
 	def parse_packet(self, packet):
 		try:
 			packet_decoded = packet.decode('utf-8')
-			print(f"Packet received from connected node: {packet_decoded}")
 
 			try:
 				return json.loads(packet_decoded)

@@ -157,6 +157,7 @@ class srcNode(Node):
 	def node_message(self, node, data):
 		session_dhkey = self.dhkey(node.id[0], self.id[1])
 		message = unpack(data, session_dhkey)
+		print(f"Decrypted message: {message}")
 
 		# request block header instance
 		rqb = RequestHandler(self, node, session_dhkey)

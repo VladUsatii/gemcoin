@@ -2,6 +2,7 @@
 import sys
 import dbm
 
+""" Obsolete method. Use add_key_NEW.py """
 if len(sys.argv) > 2:
 	print("You can't enter multiple keys. Only enter the private key.")
 	raise IndexError

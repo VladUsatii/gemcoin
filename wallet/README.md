@@ -1,5 +1,7 @@
 # Key Utility 🔑
 
+## CURRENTLY OBSOLETE. DON'T USE THIS! INSTEAD, USE THE ADD_KEY_NEW.py FILE .. .
+
 Our key utility generates a random key, specific to every person in the world.
 
 ## Gemcoin Wallets: A Walkthrough

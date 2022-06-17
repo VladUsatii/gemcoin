@@ -118,6 +118,8 @@ class RequestHandler(object):
 			# TODO: check node type HERE
 
 			# receiver responding to opcodes here
+
+			# REQUESTING ALL HEADERS
 			if x == '0x00' or x == '0':
 				headers = self.cache.getAllHeaders(True)
 
@@ -133,7 +135,22 @@ class RequestHandler(object):
 						self.src_node.send_to_node(self.dest_node, payload)
 					time.sleep(2) # 2 second lag remover
 
+			# REQUESTING NEW HEADERS
+			if x == '0x01' or x == '1':
+				headers = self.cache.getAllHeaders(True)
+
+				latest_index = int(recvd[3][1])
+				sendable_headers = headers[latest_index:]
+
+				for sender_index, header in enumerate(sendable_headers):
+					print("SENDING TO NODE: ", header)
+					payload = Hello(self.src_node.VERSION, self.src_node.id[3], ['0x04', str(x), str(latest_index+sender_index), json.dumps(header)], self.dhkey)
+					self.src_node.send_to_node(self.dest_node, payload)
+					time.sleep(2) # 2 second lag remover
+
 			# sender responds to the receiver's ACK
+
+			# RESPONDING TO ALL HEADER BROADCASTS
 			if x == '0x04' or x == '4':
 				print("RECEIVED: ", recvd[3])
 				if type(recvd[3]) is list and len(recvd[3][1:]) == 3:
@@ -141,8 +158,13 @@ class RequestHandler(object):
 						subop, index, data = recvd[3][1:]
 						data = json.loads(data)
 
+						# check if the destination node has "more" information than you. If not, break communication.
+						if len(data) == 0:
+							info("Destination node is not updated enough to the blockchain to communicate block headers.")
+							break
+
 						# how a sender handles the data he requested
-						if subop == '0x00' or subop == '0':
+						if subop == '0x00' or subop == '0' or subop == '0x01' or subop == '1':
 							self.cache.Create(index.encode('utf-8'), data.encode('utf-8'), self.cache.DB)
 							info(f"Downloaded header			{Color.GREEN}index{Color.END}={index}")
 

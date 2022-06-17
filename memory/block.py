@@ -223,10 +223,7 @@ A construction of a transaction does the following:
 workFee <-- F(electricity) (the lower the F(electricity) for sending the transaction, the longer it will take to process the transaction)
 """
 
-# NOTE: ( PATCH 0.1.1)
-"""
-Signs the transaction with r, s offline (external modification) --> when received and validated, the original message gets, r, s appended
-"""
+# NOTE: ( PATCH 0.1.1 )
 def ConstructTransaction(version, workFee, timestamp, fromAddr, toAddr, value, privKey, data='0x00'):
 	assert int(version) == 20, "ERROR: Version must match genesis version."
 	# int32_t 4 byte spec and pad
@@ -280,6 +277,12 @@ class Cache(object):
 		self.cachePATH = self.cache[1]
 
 		self.DB = leveldb.LevelDB(self.cachePATH)
+
+	# Returns newest index --> based on cache
+	def newestIndex(self):
+		n = 1
+		if self.pathType == "mempool": n = 0
+		return len(list(self.DB.RangeIter(include_value=True, reverse=False))) - n
 
 	# Generic function to decode all raw data recovered from the LevelDB storage
 	def decodeObjectTypes(self, raw):
@@ -483,4 +486,7 @@ c2 = Cache("blocks")
 #pprint.pprint(c2.ReadOldestBlock(True))
 
 pprint.pprint(c2.ReadTransactionByID('value', '2434550', True))
+
+c3 = Cache("blocks")
+print(c3.newestIndex())
 """

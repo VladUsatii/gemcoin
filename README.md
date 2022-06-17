@@ -51,13 +51,15 @@ To join the peer-to-peer server:
 >>> cd gemcoin
 >>> # bash setup.sh # in production
 >>> chmod +x main.py
+>>> chmod +x add_key_NEW.py
 >>> ./main.py # right now, this is what you run
 ```
 
-To make a private key and submit it to the chain:
+To make a private key and save it to the chain:
 
-```bash
->>> python3 add_key.py [ priv_key ] # the key can be generated in the 'wallet' folder
+```
+>>> chmod +x add_key_NEW.py
+>>> ./add_key_NEW.py
 ```
 
 ## Versions
