@@ -13,6 +13,8 @@ from gemcoin.prompt.errors import *
 from gemcoin.memory.nodeargs import *
 from gemcoin.memory.block import *
 
+from gemcoin.core.sendShards import *
+
 """
 nodesync
 
@@ -171,9 +173,33 @@ class RequestHandler(object):
 			if x == '0x0f' or x == '15':
 				pass
 
+
+
 			# TRANSACTION HANDLER
 			if x == '0x05' or x == '5':
-				pass
+				raw_tx = json.loads(recvd[3][1])
+				info("Validating transaction from inbound node. If confirmed, will send to outbound nodes.")
+
+				# first, extract values
+				pubKey = raw_tx['fromAddr']
+				value = raw_tx['value']
+
+				# second, validate signature using public key
+				try:
+					assert ConfirmTransactionValidity(raw_tx)
+				except AssertionError:
+					panic("Invalid transaction.")
+				except Exception as e:
+					panic("There was an error with the transaction.")
+
+				# third, check history of fromAddr for
+				mem = Cache("blocks")
+				mem.ReadTransactionByID('fromAddr', str(pubKey))
+				#	1) enough balance
+				
+				#	2) a nonce n that is n_prev + 1
+				#	3) a valid electric fee
+
 
 	# pulls apart raw tx, confirms sender with ecdsa signature, and broadcasts updated transaction to other nodes
 	def addToMempool(self, recvd):

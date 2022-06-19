@@ -62,12 +62,12 @@ class Common:
 		def __init__(self):
 			self.version = 20
 			self.previous_hash = hex(0x0)
-			self.mix_hash = hex(0x0)
-			self.timestamp = 1643587254 # datetime.utcnow().timestamp() --> measurement between mining regardless of time zone
-			self.targetEncoded = 0x0300 # easiest mineable block (1/768 operations will be a successful block creation)
-			self.nonce = 0x00
+			self.mix_hash = hex(0x01)
+			self.timestamp = 54354435 # 1643587254 # datetime.utcnow().timestamp() --> measurement between mining regardless of time zone
+			self.targetEncoded = '1DAC2B7C' # easiest mineable block (1/768 operations will be a successful block creation)
+			self.nonce = 2083236893
 			self.num = 0
-			self.txHash = hex(0x0)
+			self.txHash = hex(0x0abf)
 			self.uncleHash = hex(0x0)
 
 		def constructHeader(self):

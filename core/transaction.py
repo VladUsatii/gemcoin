@@ -63,7 +63,6 @@ def check_struct_template(inp):
 
 	return True
 
-
 # check for valid electricFee
 def isValidElectricFee(transaction: dict):
 	maxWorkFee = getMaxWorkFee()

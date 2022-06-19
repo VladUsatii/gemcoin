@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 import ecdsa
 import datetime
 from hashlib import sha256
@@ -52,7 +51,7 @@ def SignTransaction(tx: dict, pk: str) -> dict:
 	# corresponding secp256k1 r s order values (r and s are stored)
 	r, s, order = s_func(rawtx, sigencode=lambda *x: x)
 
-	print(r, s, order)
+	#print(r, s, order)
 
 	# asserting verification that signature matches public key (rawtx)
 	verification = sk.get_verifying_key().verify_digest((r, s), rawtx, sigdecode=lambda sig, _: (sig[0], sig[1]))
@@ -81,7 +80,7 @@ Returns True if valid, False with Error if invalid.
 def ConfirmTransactionValidity(signed_tx: dict) -> bool:
 	# extract prerequisites
 	#pubAddr = signed_tx['tx']['pubAddr']
-	pubAddr = signed_tx['tx']['fromAddr']
+	pubAddr = signed_tx['tx']['fromAddr'].replace('0x', '')
 	r = int(signed_tx['tx']['r'])
 	s = int(signed_tx['tx']['s'])
 
@@ -133,8 +132,12 @@ Input sig_tx (SIGNED TX) packages into Hello() under subopcode 0x05, sends to de
 
 """
 def sendTransaction(sig_tx: dict, src_node, dest_node, dhkey):
+	# assert validity
+	assert ConfirmTransactionValidity(sig_tx)
+
 	warning("The transaction must be signed before sending. Did you do so? (y/n)")
 	inp = input("")
+
 	if inp in ['N', 'n', 'no', 'No', 'nO', 'NO']:
 		panic("Please sign your transaction before sending.")
 	elif inp in ['Y', 'y', 'yes', 'Yes', 'YEs', 'YES', 'yEs', 'yES', 'yeS', 'YeS']:

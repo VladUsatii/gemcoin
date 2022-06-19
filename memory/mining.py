@@ -48,7 +48,6 @@ Difficulty   : assessed every 2016 blocks
     * new_difficulty = ((2016*10)/average_mine_time) * previous_difficulty
 """
 
-
 class MinerClient:
 	def __init__(self):
 		# state of user (True: Mining, None: Not Mining)
@@ -165,6 +164,8 @@ class MinerClient:
 		newestHeader = list(list(db.RangeIter(include_value=True, reverse=True))[0])[1].decode('utf-8')
 		decoded_header = DeconstructBlockHeader(newestHeader)
 
+		print("CURRENT DIFFICULTY: ", decoded_header['targetEncoded'])
+
 		if int(decoded_header["nonce"]) % 2016 == 0:
 			#TODO: find a way to calculate the updated block difficulty
 			return int(decoded_header["targetEncoded"]) # This is a temporary line -- could cause production bugs
@@ -210,20 +211,22 @@ class MinerClient:
 			timestamp=int(datetime.utcnow().timestamp()),
 			fromAddr=fromAddr,
 			toAddr=fromAddr,
-			value=values
+			value=values,
+			privKey=None
 		)
 		mlist.insert(0, coinbase_tx) # the 0'th index is checked, error SentToSelf is ignored because BPEV allows custom alloc
 
 		print(fromAddr[2:])
 
 		block_nonce = 0
+		diff = int("0000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", 16) / int(self.getNewestDifficulty())
 		# construct the block header for mining
 		block_header = ConstructBlockHeader(
 			version=int(Common.Genesis().version),
 			previous_hash=str(dhash(self.getNewestBlock())),
 			mix_hash=str(merkle_hash(mlist)),
 			timestamp=int(datetime.utcnow().timestamp()),
-			targetEncoded=int(self.getNewestDifficulty()),
+			targetEncoded=hex(self.getNewestDifficulty())[2:],
 			nonce=0,
 			num=int(DeconstructBlockHeader(self.getNewestBlock())['num']) + 1,
 			txHash=dhash(coinbase_tx),
@@ -245,7 +248,9 @@ class MinerClient:
 				print(f"Successfully mined a block with valid nonce {formattedNonce} on the mainnet. Validating proof. Asking clients.")
 				break
 			else:
-				print(f"Guess #{n}")
+				hbh_len = len(str(int(hashed_block_header, 16))) - 1
+				hbh_int = str(int(hashed_block_header, 16))[0]
+				print(f"GUESS IS {hbh_int}e+{hbh_len}. MUST BE BELOW {diff}.")
 		if not DONE:
 			print("Exhausted all values without finding a hash. Please make sure to sync your chain before mining.")
 

@@ -72,6 +72,12 @@ ConfirmTransactionValidity(signed_tx)
 # if returns False : should NOT be sent as a valid transaction and will be dumped by peers
 ```
 
+To send, use the following function after connecting to a peer on an omniscient network handler:
+
+```python3
+sendTransaction(signed_tx, src_node, dest_node, dhkey)
+```
+
 That's all, folks.
 
 New types of transactions are coming as well. Watch out for those!

@@ -53,6 +53,7 @@ from gemcoin.peers.packerfuncs import *
 from gemcoin.memory.utils import *
 from gemcoin.prompt.color import *
 from gemcoin.prompt.errors import *
+from gemcoin.peers.serialization import *
 
 # FUNCTIONS FOR BLOCK HEADER
 
@@ -95,10 +96,10 @@ def formatHeaderInput(s, byte_spec: int, name: str, intToString=False):
 """
 ConstructBlockHeader
 
-Constructs a block header using a block's information. Currently takes up 116 bytes, final product should take up up to 480 bytes (init+state).
+Constructs a block header using a block's information. Currently takes up 213 bytes, final product should take up up to 480 bytes (init+state).
 """
 # TODO: Verify that the input is correct in an elegant way
-def ConstructBlockHeader(version: int, previous_hash: hex, mix_hash: hex, timestamp: int, targetEncoded: int, nonce: int, num: int, txHash: hex, uncleRoot: hex) -> bytes:
+def ConstructBlockHeader(version: int, previous_hash: hex, mix_hash: hex, timestamp: int, targetEncoded: hex, nonce: int, num: int, txHash: hex, uncleRoot: hex) -> bytes:
 	# int32_t 4 byte spec and pad
 	version       = formatHeaderInput(version, 4, "version")
 
@@ -117,8 +118,12 @@ def ConstructBlockHeader(version: int, previous_hash: hex, mix_hash: hex, timest
 	timestamp     = formatHeaderInput(timestamp, 32, "timestamp", True)
 
 	# int32_t 4 byte spec and pad
-	targetEncoded = formatHeaderInput(targetEncoded, 4, "targetEncoded")
-	nonce         = formatHeaderInput(nonce, 4, "nonce")
+	if len(targetEncoded) < 8 and isinstance(targetEncoded, str):
+		targetEncoded = formatHeaderInput(targetEncoded, 8, "targetEncoded")
+	elif len(targetEncoded) == 8 and isinstance(targetEncoded, str):
+		targetEncoded = str(targetEncoded)
+
+	nonce         = formatHeaderInput(nonce, 32, "nonce", True)
 	num           = formatHeaderInput(num, 4, "num")
 
 	if len(txHash) == 64:
@@ -135,16 +140,13 @@ def ConstructBlockHeader(version: int, previous_hash: hex, mix_hash: hex, timest
 	refs = [version, previous_hash, mix_hash, timestamp, targetEncoded, nonce, num, txHash, uncleRoot]
 	for index, x in enumerate(refs):
 		if x is None:
-			print(x)
+			print(type(x))
 			print(f'{index} is NoneType. Please revise variable {x}.')
 		else:
-			print(x)
+			print(type(x))
 
 	fixedIndex = version + previous_hash + mix_hash + timestamp + targetEncoded + nonce + num + txHash + uncleRoot
-	if len(fixedIndex) == 352:
-		return fixedIndex
-	else:
-		print(len(fixedIndex), "is actual len.")
+	return fixedIndex
 
 """
 DeconstructBlockHeader
@@ -164,17 +166,17 @@ def DeconstructBlockHeader(BlockHeader: str):
 	timestamp = BlockHeader[136:200]
 	timestamp = int(f'0x{timestamp}', 16)
 
-	targetEncoded = BlockHeader[200:208]
+	targetEncoded = BlockHeader[200:216]
 	targetEncoded = int(f'0x{targetEncoded}', 16)
 
-	nonce = BlockHeader[208:216]
+	nonce = BlockHeader[216:280]
 	nonce = int(f'0x{nonce}', 16)
 
-	num = BlockHeader[216:224]
+	num = BlockHeader[280:288]
 	num = int(f'0x{num}', 16)
 
-	a1, a2 = 224, 288
-	b1, b2 = 288, 352
+	a1, a2 = 288, 352
+	b1, b2 = 352, 416
 
 	txHash = BlockHeader[a1:a2]
 
@@ -347,10 +349,9 @@ class Cache(object):
 		txs = [x['transactions'] for x in b]
 		hexlified_txs = sum(txs, [])
 
-		# complicated reverse hexlification
-		all_txs = [binascii.unhexlify(bytes(x[2:].encode('utf-8'))) for x in hexlified_txs]
+		# complicated reverse hexlification x was [2:]
+		all_txs = [binascii.unhexlify(bytes(x.encode('utf-8'))) for x in hexlified_txs]
 		loaded_txs = [json.loads(x) for x in all_txs]
-		print(loaded_txs)
 
 		# find all transactions by some arbitrary ID (this is a generic function!)
 		try:
@@ -443,17 +444,25 @@ Block
 Inputs are the "constructed" block header and the list of transactions including the block reward as a fromAddr -> fromAddr transaction w/ nLockTime None. TODO: Add an nLockTime to the JSON.
 
 takes in the block header, deconstructs it and puts it in JSON format, and appends transaction list to the txList. Gives the tx list a txroot hash.
+
+TRANSACTIONS MUST BE JSON DUMPED INTO A LIST ALREADY!
 """
 def ConstructBlock(header: str, transactions: list):
 	# deconstruct the header with the new nonce
 	deconstructed_header = DeconstructBlockHeader(header)
 
 	# add the hashed transaction (each transaction is hashed and appended) to the txList and alter the txHash from the input
-	hexlified_transactions = [hex(int(binascii.hexlify(str(x).encode('utf-8')), 16)) for x in transactions]
+	#hexlified_transactions = [hex(int(binascii.hexlify(str(x).encode('utf-8')), 16)) for x in transactions]
+	print(transactions)
+	hexlified_transactions = [binascii.hexlify(x.encode('utf-8')).decode('utf-8') for x in transactions]
+	print(hexlified_transactions)
 	deconstructed_header["transactions"] = hexlified_transactions # each transaction is {"fromAddr": 0xasdfadfsa, ... "value": 100}, ..
 	deconstructed_header["txHash"]       = merkle_hash(transactions)
 
 	return deconstructed_header
+
+#a = rlp_encode([binascii.hexlify(x.encode('utf-8')) for x in ['fdsa', 'sf', 'fdsafdsasdf']])
+#print([binascii.unhexlify(x).decode('utf-8') for x in rlp_decode(a)])
 
 """
 # CONSTRUCT TRANSACTIONS AND PUT THEM IN BLOCKS
@@ -463,7 +472,13 @@ s = Cache("headers")
 
 # ConstructTransaction(version, workFee, timestamp, fromAddr, toAddr, value, privKey, data='0x00')
 
-blockheader = ConstructBlockHeader(20, hex(5), hex(5434354), 54354435, 14, 64354, 3, hex(1), hex(4543))
+# ConstructBlockHeader(version: int, previous_hash: hex, mix_hash: hex, timestamp: int, targetEncoded: int, nonce: int, num: int, txHash: hex,     uncleRoot: hex) -> bytes:
+
+blockheader = ConstructBlockHeader(20, hex(0x00), hex(0x01), 54354435, hex(0x01), 2083236893, 0, hex(0xabf), hex(0x00))
+print(blockheader)
+decons      = DeconstructBlockHeader(blockheader)
+print(decons)
+
 transaction1 = ConstructTransaction(20, 231, 23341, "0xdfdafdfa", "daaaaa", 20430, '0x002000000a')
 transaction2 = ConstructTransaction(20, 221, 2335431, "0xdfff7f7f7f7f7fdaaa", "daa43aaa34aaa", 2434550, '0x0234343')
 
@@ -480,13 +495,9 @@ print("Did it!")
 # TEST THE RECOVERY OF CERTAIN TRANSACTIONS
 c1 = Cache("mempool")
 pprint.pprint(c1.GetBiggestTransactions())
-
-c2 = Cache("blocks")
+"""
+#c2 = Cache("blocks")
 #pprint.pprint(c2.ReadLatestBlock(True))
 #pprint.pprint(c2.ReadOldestBlock(True))
 
-pprint.pprint(c2.ReadTransactionByID('value', '2434550', True))
-
-c3 = Cache("blocks")
-print(c3.newestIndex())
-"""
+#pprint.pprint(c2.ReadTransactionByID('fromAddr', '0x0x77dca013986bdfcee6033cac4a0b12b494171b61'))
