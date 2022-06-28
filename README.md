@@ -1,6 +1,10 @@
 
 This is not a working project at the moment. When a full release is pushed, this tab will be removed.
 
+Fund us by sending any amount of ETH to the following address:
+
+```0x82848c7C6Ae81CDbCD108D2C71A605a41Cfc2e42```
+
 ----
 
 ![gemcoin logo](https://github.com/vladusatii/gemcoin/blob/main/aprilGemcoinLogo.png?raw=true)

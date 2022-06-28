@@ -64,7 +64,7 @@ class Common:
 			self.previous_hash = hex(0x0)
 			self.mix_hash = hex(0x01)
 			self.timestamp = 54354435 # 1643587254 # datetime.utcnow().timestamp() --> measurement between mining regardless of time zone
-			self.targetEncoded = '1DAC2B7C' # easiest mineable block (1/768 operations will be a successful block creation)
+			self.targetEncoded = hex(1) # easiest mineable block (1/768 operations will be a successful block creation)
 			self.nonce = 2083236893
 			self.num = 0
 			self.txHash = hex(0x0abf)

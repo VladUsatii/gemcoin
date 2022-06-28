@@ -246,6 +246,8 @@ Peer discovery starts here. Git hash is presented, local nodes are searched, and
 
 """
 def main():
+	IP = socket.gethostbyname(socket.gethostname())
+
 	# present constants that can be set in the settings file
 	constants = showConstants()
 	printConstants(constants)

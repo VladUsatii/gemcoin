@@ -58,6 +58,7 @@ class Node(threading.Thread):
 		self.attempted = 0
 
 		if id == None:
+			# [ucid, rng, version, pubAddr]
 			self.id = self.dhke()
 		else:
 			self.id = str(id)
@@ -146,9 +147,7 @@ class Node(threading.Thread):
 					self.stop()
 				else:
 					# map private key to public key via node function
-					full_pub_addr = self.mapPublicAddr(db['priv_key'])
-
-					# append public key to ID
+					full_pub_addr = db['pub_key'].decode('utf-8') #full_pub_addr = self.mapPublicAddr(db['priv_key'])
 					basic_id.append(full_pub_addr)
 
 					print(info(f"(DHKey) {basic_id[0]}", returner=True) + "     " + info(f"(DHKeyOutput) {basic_id[1]}", returner=True))
@@ -249,7 +248,7 @@ class Node(threading.Thread):
 				return True
 
 			for node in self.nodes_inbound:
-				if node.host == host and node.id[2] == connected_node_id[2]:
+				if node.host == host and node.id[3] == connected_node_id[3]:
 					print("connect_with_node: This node (" + node.id[0] + ") is already connected with us.")
 					sock.send("CLOSING: Already having a connection together".encode('utf-8'))
 					sock.close()
@@ -362,7 +361,7 @@ class Node(threading.Thread):
 
 		self.sock.settimeout(None)
 		self.sock.close()
-		info("Node stopped")
+		info("Node stopped.")
 
 	def outbound_node_connected(self, node):
 		"""
@@ -386,7 +385,7 @@ class Node(threading.Thread):
 		self.connect_with_node(node)
 		print("Connected with node")
 
-		# sync connection 
+		# sync connection
 		current_time = int(datetime.now().strftime("%S"))
 		next_10_seconds = roundup(current_time)
 		while int(datetime.now().strftime("%S")) != next_10_seconds:
@@ -400,7 +399,7 @@ class Node(threading.Thread):
 
 	def node_disconnected(self, node):
 		self.debug_print("node_disconnected: " + node.id[0])
-
+		self.connected -= 1
 		if node in self.nodes_inbound:
 			del self.nodes_inbound[self.nodes_inbound.index(node)]
 			self.inbound_node_disconnected(node)

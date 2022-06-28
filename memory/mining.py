@@ -219,7 +219,7 @@ class MinerClient:
 		print(fromAddr[2:])
 
 		block_nonce = 0
-		diff = int("0000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", 16) / int(self.getNewestDifficulty())
+		diff = int("0000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", 16) // int(self.getNewestDifficulty())
 		# construct the block header for mining
 		block_header = ConstructBlockHeader(
 			version=int(Common.Genesis().version),
@@ -245,16 +245,13 @@ class MinerClient:
 			if self.isProperDifficulty(hashed_block_header):
 				block = ConstructBlock(header=block_header, transactions=mlist)
 				DONE = True
-				print(f"Successfully mined a block with valid nonce {formattedNonce} on the mainnet. Validating proof. Asking clients.")
+				print(f"Successfully mined a block with valid nonce {formattedNonce} on the mainnet. Validating block. Will ask to send to peers.")
+
 				break
-			else:
-				hbh_len = len(str(int(hashed_block_header, 16))) - 1
-				hbh_int = str(int(hashed_block_header, 16))[0]
-				print(f"GUESS IS {hbh_int}e+{hbh_len}. MUST BE BELOW {diff}.")
 		if not DONE:
 			print("Exhausted all values without finding a hash. Please make sure to sync your chain before mining.")
 
-miner_addr = "0x0000000000000"
+miner_addr = hex(0)
 mc = MinerClient()
 
 # TODO: Design the mempool

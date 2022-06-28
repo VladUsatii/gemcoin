@@ -497,6 +497,7 @@ c1 = Cache("mempool")
 pprint.pprint(c1.GetBiggestTransactions())
 """
 #c2 = Cache("blocks")
+
 #pprint.pprint(c2.ReadLatestBlock(True))
 #pprint.pprint(c2.ReadOldestBlock(True))
 
