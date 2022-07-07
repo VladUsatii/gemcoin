@@ -7,7 +7,7 @@ Fund us by sending any amount of ETH to the following address:
 
 ----
 
-![gemcoin logo]<img src="https://github.com/vladusatii/gemcoin/blob/main/aprilGemcoinLogo.png?raw=true" width="300" height="300">
+<img src="https://github.com/vladusatii/gemcoin/blob/main/aprilGemcoinLogo.png?raw=true" width="300" height="300">
 
 A Turing-complete, general-purpose blockchain. Gas fees are dumb, so we switched to electric.
 
