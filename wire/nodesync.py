@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 import sys, os
 import time
 import json
@@ -14,51 +13,20 @@ from gemcoin.memory.nodeargs import *
 from gemcoin.memory.block import *
 
 from gemcoin.core.sendShards import *
+from gemcoin.wire.fraud_tests import *
 
 """
 nodesync
 
-NOTE:
-Only implementing fast-node verification. This is because I don't have the intellect to program state trie verification.
+This is where requests are handled and sent back to their respective senders.
 
-All functions concerning the sync status of an inbound node
+Best use cases:
+- User A sends a signed transaction to User B, and User B runs tests and validates it. If it is a valid signature, User B adds the transaction to the mempool and repeats User A's duty.
+- User A sends a request for ALL blocks on the network. User B sends his chain to User A and User A verifies that each block header is valid. If the block is valid, User A adds the block to his chain.
+- User A sends a request that was programmed by User A. User B, if he has the same request built-in, will respond with the correct data. User A checks that the request was valid, and does some callback operation.
+- User A is requesting the newest headers. User B checks User A's latest block header index, and responds with index + 1 --> User B's latest block header. User A verifies each one before adding to his chain.
 
-Spawn
-
-Interpreter instance of the payload sent (runs payload code until electricity runs out)
-
-class Spawn(object):
-	def __init__(self, obj):
-		self.capability = obj[0]
-		try:
-			self.data = obj[1]
-		except Exception:
-			self.data = None
-		self.interpreter(self.capability, self.data)
-
-	# starts new VM instance
-	def interpreter(self, capability, data):
-		pass
-
-
-
-class Send(object):
-	def __init__(self, src_node, dest_node, dhkey):
-		self.src_node = src_node
-		self.src_node.VERSION = 20
-		self.dhkey = dhkey
-
-	# Sends a Hello Package to destination node
-	def sendHello(capability: list, dest_addr: str):
-		payload = Hello(self.src_node.VERSION, self.src_node.id[3], capability, self.dhkey)
-		self.src_node.send_to_node(dest_addr, payload)
-
-	# Spawns (starts a new instance of) a thread based on capability
-	def spawn(capability: list):
-		return Spawn(capability)
 """
-
-
 
 class RequestBlocks(object):
 	def __init__(self, src_node, dest_node, dhkey):
@@ -106,109 +74,162 @@ class RequestHandler(object):
 	# 2-3 (Handle, send, handle receiver data)
 	def handler(self, recvd):
 
-		# read capabilities and handle appropriately
-		for index, x in enumerate(recvd[3]):
+		x = recd[3][0] # Opcode of the handler
 
-			# TODO: check node type HERE
+		#############################
+		## RESPOND TO OPCODES HERE ##
+		#############################
 
-			# receiver responding to opcodes here
+		# REQUESTING ALL HEADERS
+		if x == '0x00' or x == '0':
+			headers_raw = self.cache.getAllHeaders(False)
+			headers = [x[1].decode('utf-8') for x in headers_raw] # type: string, encoding: fixedint
 
-			# REQUESTING ALL HEADERS
-			if x == '0x00' or x == '0':
-				headers = self.cache.getAllHeaders(True)
+			"""
+			Hello message SHOULD look like -->
+			['0x00', '20', '0x0..', ['0x04', '0x00', 'index_of_packet', 'header_body']]
+			"""
 
-				"""
-				Hello message SHOULD look like -->
-				['0x00', '20', '0x0..', ['0x04', 'packet', 'index_of_packet', 'header_body']]
-				"""
-
+			# if the amount of all headers on destination node > genesis block (or 1)
+			if len(headers) > 1:
+				# send each header
 				for nested_index, header in enumerate(headers):
 					if nested_index != 0:
+						payload = Hello(self.src_node.VERSION, self.src_node.id[3], ['0x04', '0x00', str(nested_index), header], self.dhkey)
+
 						print("SENDING TO NODE: ", header)
-						payload = Hello(self.src_node.VERSION, self.src_node.id[3], ['0x04', str(x), str(nested_index), json.dumps(header)], self.dhkey)
+						print("FULL PAYLOAD SENDING:", payload)
+
 						self.src_node.send_to_node(self.dest_node, payload)
-					time.sleep(2) # 2 second lag remover
 
-			# REQUESTING NEW HEADERS
-			if x == '0x01' or x == '1':
-				headers = self.cache.getAllHeaders(True)
+					time.sleep(3) # 3 second wait (because some computers may take a long time to verify headers)
 
-				latest_index = int(recvd[3][1])
-				sendable_headers = headers[latest_index:]
-
-				for sender_index, header in enumerate(sendable_headers):
-					print("SENDING TO NODE: ", header)
-					payload = Hello(self.src_node.VERSION, self.src_node.id[3], ['0x04', str(x), str(latest_index+sender_index), json.dumps(header)], self.dhkey)
-					self.src_node.send_to_node(self.dest_node, payload)
-					time.sleep(2) # 2 second lag remover
-
-			# sender responds to the receiver's ACK
-
-			# RESPONDING TO ALL HEADER BROADCASTS
-			if x == '0x04' or x == '4':
-				print("RECEIVED: ", recvd[3])
-				if type(recvd[3]) is list and len(recvd[3][1:]) == 3:
-					try:
-						subop, index, data = recvd[3][1:]
-						data = json.loads(data)
-
-						# check if the destination node has "more" information than you. If not, break communication.
-						if len(data) == 0:
-							info("Destination node is not updated enough to the blockchain to communicate block headers.")
-							break
-
-						# how a sender handles the data he requested
-						if subop == '0x00' or subop == '0' or subop == '0x01' or subop == '1':
-							self.cache.Create(index.encode('utf-8'), data.encode('utf-8'), self.cache.DB)
-							info(f"Downloaded header			{Color.GREEN}index{Color.END}={index}")
-
-						# avoid a for loop
-						break
-
-					except Exception as e:
-						panic("Interrupting large download. Will start where left off on next start.")
-						panic(f"Error: {e}")
-
-			# sender reads bytecode, doesn't need to respond. If is full node, will add the bytecode to the state.
-			if x == '0x0f' or x == '15':
-				pass
+			elif len(headers) <= 1:
+				payload = Bye(0x01, self.dhkey)
+				self.src_node.send_to_node(self.dest_node, payload)
 
 
+		# REQUESTING NEW HEADERS
+		if x == '0x01' or x == '1':
+			headers = self.cache.getAllHeaders(False)
+			headers = [x[1].decode('utf-8') for x in headers_raw]
 
-			# TRANSACTION HANDLER
-			if x == '0x05' or x == '5':
-				raw_tx = json.loads(recvd[3][1])
-				info("Validating transaction from inbound node. If confirmed, will send to outbound nodes.")
+			"""
+			Hello message SHOULD look like -->
+			['0x00', '20', '0x0..', ['0x04', '0x01', 'index_of_packet', 'header_body']]
+			"""
 
-				# first, extract values
-				pubKey = raw_tx['fromAddr']
-				value = raw_tx['value']
+			latest_index = int(recvd[3][1])
+			sendable_headers = headers[latest_index:] # (!!!) might cause off-by-one error
 
-				# second, validate signature using public key
+			for sender_index, header in enumerate(sendable_headers):
+				print("SENDING TO NODE: ", header)
+				payload = Hello(self.src_node.VERSION, self.src_node.id[3], ['0x04', str(x), str(latest_index+sender_index), header], self.dhkey)
+				self.src_node.send_to_node(self.dest_node, payload)
+				time.sleep(2) # 2 second lag remover
+
+		# sender responds to the receiver's ACK
+
+		# RESPONDING TO ALL HEADER BROADCASTS
+		if x == '0x04' or x == '4' or x == 4:
+			print("RECEIVED: ", recvd[3])
+
+			if type(recvd[3]) is list and len(recvd[3][1:]) == 3:
 				try:
-					assert ConfirmTransactionValidity(raw_tx)
-				except AssertionError:
-					panic("Invalid transaction.")
-				except Exception as e:
-					panic("There was an error with the transaction.")
+					subop, index, data = recvd[3][1:]
 
+					# how a sender handles the data he requested
+					if subop == '0x00' or subop == '0' or subop == 0:
+						# this is where requester node checks the chain for fraud
+						fraud = checkForFraud(index, data, self.cache.getAllHeaders(False)[0])
+						if fraud is True:
+							self.cache.Create(index.encode('utf-8'), data.encode('utf-8'), self.cache.DB)
+							info(f"Downloaded header            {Color.GREEN}index{Color.END}={index}")
+						elif fraud is False:
+							warning("The proposed block is not valid for this chain. This node has been Byed(0x01) for convenience.")
+							payload = Bye(0x01, self.dhkey)
+							self.src_node.send_to_node(self.dest_node, payload)
+
+				except Exception as e:
+					panic("Interrupting large download. Will start where left off on next start.")
+					panic(f"Error: {e}")
+
+		# sender reads bytecode, doesn't need to respond. If is full node, will add the bytecode to the state.
+		if x == '0x0f' or x == '15':
+			pass
+
+		# TRANSACTION HANDLER
+		if x == '0x05' or x == '5':
+			raw_tx = json.loads(recvd[3][1])
+
+			info("Validating transaction from inbound node. If confirmed, will send to outbound nodes.")
+
+			# first, extract values
+			pubKey = raw_tx['fromAddr']
+			data = raw_tx['data']
+			electricSpent = int(raw_tx['workFee'])
+			value = int(raw_tx['value']) + electricSpent
+
+			# second, validate signature using public key
+			validity = ConfirmTransactionValidity(raw_tx)
+			if validity is True:
 				# third, check history of fromAddr for
 				mem = Cache("blocks")
-				mem.ReadTransactionByID('fromAddr', str(pubKey))
-				#	1) enough balance
-				
-				#	2) a nonce n that is n_prev + 1
-				#	3) a valid electric fee
 
+				froms = mem.ReadTransactionByID('fromAddr', str(pubKey))
+				tos   = mem.ReadTransactionByID('toAddr', str(pubKey))
+
+				if len(froms) > 0:
+					#	1) enough balance
+					froms_values = [x['value'] for x in froms]
+					froms_values_ct = 0
+					for x in froms_values:
+						froms_values_ct += int(x)
+				elif len(froms) <= 0:
+					froms_values_ct = 0
+
+				if len(tos) > 0:
+					tos_values   = [x['value'] for x in tos]
+					tos_values_ct= 0
+					for x in tos_values:
+						tos_values_ct += int(x)
+				elif len(tos) <= 0:
+					tos_values_ct = 0
+
+				balance = tos_values_ct - froms_values_ct
+				if value > balance:
+					panic("User does not have enough balance for their transaction. Dropping.")
+				elif value <= balance:
+					info("Sufficient balance for transaction.")
+
+					#	2) a nonce n that is n_prev + 1
+					newest_nonce = froms[-1]['nonce']
+					if int(raw_tx['nonce']) - 1 == newest_nonce:
+						#	3) a valid electric fee given the data in the computation
+						check_electric = checkElectric(electricSpent, data)
+						if check_electric is True:
+							addToMempool(raw_tx)
+						else:
+							panic("Electric fee is either too small or too high (GIP 2).")
 
 	# pulls apart raw tx, confirms sender with ecdsa signature, and broadcasts updated transaction to other nodes
-	def addToMempool(self, recvd):
+	def addToMempool(self, raw_tx):
 		# check if raw tx first
-		msg = recvd[0]
-		version = recvd[1]
-		publicAddr = recvd[2]
-		#data = json.loads(recvd[3])
+		check_tx_validity = ConfirmTransactionValidity(raw_tx)
 
+		# TODO: Check that the timestamp of the transaction > (latest_transaction - 3 hours)
+		if check_tx_validity is True:
+			# add to the mempool
+			mem = Cache("mempool")
+			try:
+				mem.Create(len(mem.readFullDB)+1, raw_tx, mem.DB)
+				info("Verified and added a transaction to the mempool.")
+			except Exception as e:
+				panic("Hit a snag: {e}")
+
+	"""
+	THIS IS WHERE A USER CAN PROGRAM THEIR OWN HANDLER SYSTEM (coming soon)
+	"""
 	def customHandler(self, recvd):
 		pass
 

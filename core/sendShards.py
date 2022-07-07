@@ -51,8 +51,6 @@ def SignTransaction(tx: dict, pk: str) -> dict:
 	# corresponding secp256k1 r s order values (r and s are stored)
 	r, s, order = s_func(rawtx, sigencode=lambda *x: x)
 
-	#print(r, s, order)
-
 	# asserting verification that signature matches public key (rawtx)
 	verification = sk.get_verifying_key().verify_digest((r, s), rawtx, sigdecode=lambda sig, _: (sig[0], sig[1]))
 	try:

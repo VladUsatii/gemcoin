@@ -9,11 +9,8 @@ if p not in sys.path:
 from gemcoin.prompt.color import Color
 
 """
-
 ERROR List
-
 (see meanings of errors in docs/ERRORS.md)
-
 """
 def timeNow():
 	now = datetime.now()

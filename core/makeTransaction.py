@@ -44,6 +44,3 @@ print('\n')
 ConfirmTransactionValidity(signed_tx)
 
 # sending the signature
-
-
-

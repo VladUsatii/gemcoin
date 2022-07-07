@@ -239,7 +239,7 @@ class MinerClient:
 
 			# split the block header into pieces
 			formattedNonce = formatHeaderInput(block_nonce, 4, "guessNonce")
-			block_header = block_header[:208] + formattedNonce + block_header[216:]
+			block_header = block_header[:216] + formattedNonce + block_header[280:]
 			hashed_block_header = dhash(block_header)
 
 			if self.isProperDifficulty(hashed_block_header):

@@ -72,8 +72,9 @@ To make a private key and save it to the chain:
 
 ## TODO
 
-Debug and audit my code
-Add some new classes to peek at the blocks from Library/Gemcoin folder
+- Debug and audit my code
+- Add support for subprotocols (maybe an on-chain downloadable library)
+- Figure out how to compile spin (the programming language for Gemcoin's VM)
 
 ---
 

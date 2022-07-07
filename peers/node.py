@@ -24,6 +24,9 @@ from gemcoin.prompt.errors import *
 from gemcoin.symmetric import AES_byte_exchange
 from gemcoin.wallet.keygenerator import Wallet
 
+# centralized read-only of the chain (does not support governance)
+from gemcoin.crawlerdata import crawler_pubkeys
+
 class Node(threading.Thread):
 	def __init__(self, host, port, id=None, callback=None, max_connections=0):
 		super(Node, self).__init__()

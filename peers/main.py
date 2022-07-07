@@ -72,7 +72,7 @@ def node_connected(self, node, connection_type: str):
 			panic("Invalid connection type.")
 			sys.exit(0)
 
-		print(f"{node.id}")
+		info(f"Node connected: {node.id} (!!!)")
 
 		# create session AES key, creates a secure channel
 		session_dhkey = self.dhkey(node.id[0], self.id[1])
@@ -182,7 +182,7 @@ class srcNode(Node):
 				self.node_disconnect_with_outbound_node(node)
 
 		""" "Hello" Opcode handler """
-		if message[0] == '0x00':
+		if message[0] == '0x00' or message[0] == '0' or message[0] == 0:
 			connect_reason = {
 				'0x00': rqb.handler(message),
 				'0': rqb.handler(message),

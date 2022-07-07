@@ -481,6 +481,7 @@ print(decons)
 
 transaction1 = ConstructTransaction(20, 231, 23341, "0xdfdafdfa", "daaaaa", 20430, '0x002000000a')
 transaction2 = ConstructTransaction(20, 221, 2335431, "0xdfff7f7f7f7f7fdaaa", "daa43aaa34aaa", 2434550, '0x0234343')
+pprint.pprint(transaction2)
 
 transaction_dump = [json.dumps(transaction1), json.dumps(transaction2)]
 block = ConstructBlock(blockheader, transaction_dump)
@@ -502,3 +503,12 @@ pprint.pprint(c1.GetBiggestTransactions())
 #pprint.pprint(c2.ReadOldestBlock(True))
 
 #pprint.pprint(c2.ReadTransactionByID('fromAddr', '0x0x77dca013986bdfcee6033cac4a0b12b494171b61'))
+
+"""
+c = Cache("headers")
+headers = c.getAllHeaders(False)
+headers_new = [x[1] for x in headers]
+
+for i, header in enumerate(headers_new):
+	print(header.decode('utf-8'))
+"""
