@@ -13,3 +13,4 @@ fixedint==0.1.6
 eth-rlp==0.2.1
 rlp==2.0.1
 leveldb==0.201
+Gemtography==0.0.1

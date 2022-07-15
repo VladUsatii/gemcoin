@@ -62,7 +62,7 @@ class Common:
 		def __init__(self):
 			self.version = 20
 			self.previous_hash = hex(0x0)
-			self.mix_hash = hex(0x01)
+			self.mix_hash = "0".zfill(64)
 			self.timestamp = 54354435 # 1643587254 # datetime.utcnow().timestamp() --> measurement between mining regardless of time zone
 			self.targetEncoded = hex(1) # easiest mineable block (1/768 operations will be a successful block creation)
 			self.nonce = 2083236893

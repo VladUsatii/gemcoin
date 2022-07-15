@@ -26,3 +26,4 @@ def merkle_hash(transactions: list) -> str:
 			t_child.append(new_hash)
 		return recursive_merkle_hash(t_child)
 	return recursive_merkle_hash(transactions_hash)
+

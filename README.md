@@ -63,7 +63,7 @@ To make a private key and save it to the chain:
 
 ```
 >>> chmod +x add_key_NEW.py
->>> ./add_key_NEW.py
+>>> ./add_key_NEW.py generate key
 ```
 
 ## Versions

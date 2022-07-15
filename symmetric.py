@@ -8,6 +8,9 @@ from Cryptodome.Random import get_random_bytes
 import random
 import uuid
 
+# gemcoin's Cryptography library will replace Cryptodome in our next update
+from Gemtography import AES
+
 # NOTE: This AES exchange version is deprecated and no longer supported by gemcoin
 class AES_exchange(object):
 	def __init__(self, key):
@@ -64,3 +67,45 @@ class AES_byte_exchange(object):
 		print(decoded)
 
 		return decoded.rstrip(b'\x0b')
+
+
+# NOTE: UNIMPLEMENTED
+"""
+REVISED AES BYTE EXCHANGE
+
+AES CTR:
+DATA = IV || E(ALL_DATA, K, IV)
+RAW_DATA = D(DATA, K)
+
+EXAMPLE:
+
+k = os.urandom(16)
+a1 = AES_CTR_EXCHANGE(k)
+
+msg = b'asdf'
+
+# SOURCE PEER:
+ct = a1.encrypt(msg)
+
+# DESTINATION PEER:
+a2 = AES_CTR_EXCHANGE(k)
+pt = a2.decrypt(ct)
+
+
+"""
+class AES_CTR_EXCHANGE(object):
+	def __init__(self, key):
+		self.key = hashlib.sha256(str(key).encode('utf-8')).digest()[:16]
+
+	def encrypt(self, pt: bytes) -> bytes:
+		assert isinstance(pt, bytes) is True, "You must encode the plaintext into bytes before sending."
+		a, iv = AES.AES_CTR_MODE(self.key), os.urandom(16)
+		b = a.encrypt_with_IV(pt, iv)
+		return binascii.hexlify(b)
+
+	def decrypt(self, ct: bytes) -> bytes:
+		assert isinstance(ct, bytes) is True, "You must encode the plaintext into bytes before sending."
+		ct = binascii.unhexlify(ct)
+		a = AES.AES_CTR_MODE(self.key)
+		pt = a.decrypt_with_IV(ct)
+		return pt

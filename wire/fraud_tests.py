@@ -51,7 +51,10 @@ def checkForFraud(index, NEW, OLD):
 		# proposed and latest must be in hexadecimal # TODO: CHANGE THE BLOCK FROM 32 BYTE INTEGER TO 4 BYTE HEXADECIMAL
 		assert int(proposed['timestamp'], 16) > int(latest['timestamp'], 16) + 600, "Timestamp isn't sufficiently past the last block for it to be counted in the blockchain."
 
-		# proposed
+		# proposed: mix_hash < decoded(target)
+		target_diff = int("0000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", 16) / int(latest['targetEncoded'])
+		assert int(proposed['mix_hash'], 16) < target_diff, "The proposed mix hash is not less than the target difficulty for the latest block."
+
 	except AssertionError as e:
 		panic(f"Fraud error given: {e}")
 		return False

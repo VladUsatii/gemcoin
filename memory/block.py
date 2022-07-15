@@ -506,9 +506,6 @@ pprint.pprint(c1.GetBiggestTransactions())
 
 """
 c = Cache("headers")
-headers = c.getAllHeaders(False)
-headers_new = [x[1] for x in headers]
-
-for i, header in enumerate(headers_new):
-	print(header.decode('utf-8'))
+headers = c.getAllHeaders(True)[0]
+print(headers['mix_hash'])
 """

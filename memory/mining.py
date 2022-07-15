@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-from block import *
+#from block import *
 from common import *
 from utils import *
 
@@ -24,6 +24,7 @@ if p not in sys.path:
 	sys.path.append(p)
 
 from gemcoin.prompt.color import Color
+from gemcoin.memory.block import *
 
 """
 BLOCK
@@ -223,10 +224,11 @@ class MinerClient:
 		# construct the block header for mining
 		block_header = ConstructBlockHeader(
 			version=int(Common.Genesis().version),
-			previous_hash=str(dhash(self.getNewestBlock())),
+			#previous_hash=str(dhash(self.getNewestBlock())),
+			previous_hash=str(Cache("headers").getAllHeaders(True)[0]['mix_hash'])[2:],
 			mix_hash=str(merkle_hash(mlist)),
 			timestamp=int(datetime.utcnow().timestamp()),
-			targetEncoded=hex(self.getNewestDifficulty())[2:],
+			targetEncoded=hex(self.getNewestDifficulty()),
 			nonce=0,
 			num=int(DeconstructBlockHeader(self.getNewestBlock())['num']) + 1,
 			txHash=dhash(coinbase_tx),
@@ -241,6 +243,8 @@ class MinerClient:
 			formattedNonce = formatHeaderInput(block_nonce, 4, "guessNonce")
 			block_header = block_header[:216] + formattedNonce + block_header[280:]
 			hashed_block_header = dhash(block_header)
+
+			print(int(hashed_block_header, 16))
 
 			if self.isProperDifficulty(hashed_block_header):
 				block = ConstructBlock(header=block_header, transactions=mlist)

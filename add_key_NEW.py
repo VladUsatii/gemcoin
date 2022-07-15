@@ -6,6 +6,8 @@ import base64
 import dbm
 import sys, os
 
+from errors_parent import *
+
 """
 KEYGENERATOR & SAVER
 
@@ -37,5 +39,40 @@ def generate_ECDSA_keys():
 
 			print("Saved your keys. These are now used when sending transactions.")
 
+"""
+VIEW KEYS
+
+View keys here
+"""
+def viewKeys():
+	with dbm.open('priv_key_store') as db:
+		try:
+			priv = db['priv_key'].decode('utf-8')
+			pub  = db['pub_key'].decode('utf-8')
+			addr = db['pub_addr'].decode('utf-8')
+
+			info(f"(Private Key) {priv}")
+			info(f"(Public Key) {pub}")
+			info(f"(Public Address) {addr}")
+		except Exception as e:
+			panic(f"(Error) {e}")
+
+"""
+IS CONNECTED
+
+Checks if user is synced to the blockchain
+"""
+def isConnected():
+	info("Details are not collectible at the moment.")
+
 if __name__ == '__main__':
-	generate_ECDSA_keys()
+	try:
+		if sys.argv[1] == "view":
+			if sys.argv[2] == "account":
+				viewKeys()
+			elif sys.argv[2] == "connection":
+				isConnected()
+		elif sys.argv[1] == "generate" and sys.argv[2] == "key":
+			generate_ECDSA_keys()
+	except IndexError:
+		panic("Syntax not correct.")
