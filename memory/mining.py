@@ -258,5 +258,8 @@ class MinerClient:
 miner_addr = hex(0)
 mc = MinerClient()
 
+"""
 # TODO: Design the mempool
 mc.start_mining(miner_addr)
+"""
+print(mc.getCurrentMempool())

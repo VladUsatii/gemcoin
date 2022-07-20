@@ -55,6 +55,9 @@ from gemcoin.prompt.color import *
 from gemcoin.prompt.errors import *
 from gemcoin.peers.serialization import *
 
+# MAGIC CONSTANTS
+TX_MAGIC = 'c6c272c5d891'
+
 # FUNCTIONS FOR BLOCK HEADER
 
 # errors
@@ -259,6 +262,20 @@ def ConstructTransaction(version, workFee, timestamp, fromAddr, toAddr, value, p
 	return payload
 
 
+"""
+PACK SIG_TX
+
+HEXLIFY( MAGIC || HEXLIFY( JSON_PACKED(SIG_TX) ) )
+
+"""
+def PackTransaction(signed_tx: dict) -> bytes:
+	jsondump = binascii.hexlify(json.dumps(signed_tx).encode('utf-8'))
+	return TX_MAGIC.encode('utf-8') + jsondump
+
+def UnpackTransaction(packed_signed_tx: bytes) -> dict:
+	packed_signed_tx = packed_signed_tx.decode('utf-8')
+	assert packed_signed_tx[:12] == TX_MAGIC, "Unsupported magic."
+	return json.loads(binascii.unhexlify(packed_signed_tx[12:]).decode('utf-8'))
 
 """
 Cache (responds with 0x00 or Hello message)
@@ -312,6 +329,13 @@ class Cache(object):
 		copy_list = [json.loads(bytes(x[1])) for x in listed]
 		return copy_list
 
+	def readMempool(self, reverse=True) -> list: # of dicts
+		listed = list(self.DB.RangeIter(include_value=True, reverse=reverse))
+		cp_list = []
+		for x in listed:
+			cp_list.append(x[1])
+		return [bytes(x) for x in cp_list]
+
 	# Create --> Encodes and Puts in LevelDB path
 	def Create(self, key, value, DB):
 		if not isinstance(key, bytes):
@@ -320,6 +344,7 @@ class Cache(object):
 			value = value.encode('utf-8')
 
 		DB.Put(key, value)
+		info("Successfully PUT data into DB.")
 
 	""" DB MUST BE MEMPOOL FOR THE FOLLOWING """
 	def ReadLatestMempool(self):

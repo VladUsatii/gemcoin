@@ -72,6 +72,12 @@ ConfirmTransactionValidity(signed_tx)
 # if returns False : should NOT be sent as a valid transaction and will be dumped by peers
 ```
 
+To pack your transaction before sending, run..
+
+```python3
+PackTransaction(signed_tx) # outputs in bytes(hex)
+```
+
 To send, use the following function after connecting to a peer on an omniscient network handler:
 
 ```python3

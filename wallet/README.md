@@ -1,7 +1,11 @@
 # Key Utility 🔑
 
-## CURRENTLY OBSOLETE. DON'T USE THIS! INSTEAD, USE THE ADD_KEY_NEW.py FILE .. .
+# CURRENTLY OBSOLETE. DON'T USE THIS! INSTEAD, USE THE ADD_KEY_NEW.py FILE .. .
 
+
+#### OBSOLETE README.MD here (for old users)
+
+```
 Our key utility generates a random key, specific to every person in the world.
 
 ## Gemcoin Wallets: A Walkthrough
@@ -14,9 +18,8 @@ After generating an address, the key utility will print both the private, the pu
 
 Copy the private key into terminal after typing the following:
 
-```bash
+bash:
 gemcoin-address [ key ]
-```
 
 After typing this, you can now make transactions to public addresses. These transactions will be added to the ledger and you can now participate in the gemcoin network.
 
@@ -25,3 +28,4 @@ After typing this, you can now make transactions to public addresses. These tran
 - Run the network until the initial block download is complete
 - Participate in the network
 - Send transactions from the command line utility
+```

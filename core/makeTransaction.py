@@ -28,7 +28,7 @@ This is an example of making a basic transaction for data (0x00) -- money, in th
 """
 
 # constructing the raw transaction
-raw = ConstructTransaction(20, 0, str(int(dt.datetime.utcnow().timestamp())), requestKeys()['pub_key'], '00000000000000000000000000000', 0, '0x00')
+raw = ConstructTransaction(20, 1, str(int(dt.datetime.utcnow().timestamp())), requestKeys()['pub_key'], '00000000000000000000000000000', 0, '0x00')
 
 pp.pprint(raw)
 print('\n')
@@ -44,3 +44,21 @@ print('\n')
 ConfirmTransactionValidity(signed_tx)
 
 # sending the signature
+# (1) pack the transaction
+packed_tx = PackTransaction(signed_tx)
+print(packed_tx)
+assert UnpackTransaction(packed_tx) == signed_tx, "Transaction was incorrectly packed."
+
+# (2) send
+# NOTE: SKIPPED
+
+# adding signature to mempool
+m = Cache("mempool")
+# NOTE: You can use an 8-byte SHA hash for the index (0) to prevent index replacement.
+#m.Create('nonce here', packed_tx, m.DB)
+unpacked_mempool = [UnpackTransaction(x) for x in m.readMempool()]
+
+# remove duplicate signatures
+cp_mempool = [json.dumps(x) for x in unpacked_mempool]
+cp_mem_w_no_duplicates = [*{*cp_mempool}]
+pp.pprint([json.loads(x) for x in cp_mem_w_no_duplicates])
