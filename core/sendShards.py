@@ -58,12 +58,13 @@ def SignTransaction(tx: dict, pk: str) -> dict:
 	except AssertionError:
 		panic("Your message's signature did not match the provided keys in your dictionary.")
 
-	tx['r'] = str(r)
-	tx['s'] = str(s)
+	new_tx = tx.copy()
+	new_tx['r'] = str(r)
+	new_tx['s'] = str(s)
 
 	signed_tx = {
 		"rawtx": rawtx.hex(),
-		"tx": tx
+		"tx": new_tx
 	}
 
 	return signed_tx
@@ -90,8 +91,7 @@ def ConfirmTransactionValidity(signed_tx: dict) -> bool:
 	confirmation_dict = signed_tx.copy()
 	comparable_prehash = confirmation_dict['tx']
 
-	del comparable_prehash['r']
-	del comparable_prehash['s']
+	del (comparable_prehash['r'], comparable_prehash['s'])
 
 	og_tx  = json.dumps(comparable_prehash).encode('utf-8')
 
@@ -114,6 +114,7 @@ def ConfirmTransactionValidity(signed_tx: dict) -> bool:
 	verification = vk.verify_digest((r, s), rawtx, sigdecode=lambda sig, _: (sig[0], sig[1]))
 	try:
 		assert verification == True
+		signed_tx['tx']['r'], signed_tx['tx']['s'] = str(r), str(s)
 
 		info("Successful confirmation of transaction.")
 		return True

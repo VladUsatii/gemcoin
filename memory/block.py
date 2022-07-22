@@ -125,6 +125,8 @@ def ConstructBlockHeader(version: int, previous_hash: hex, mix_hash: hex, timest
 		targetEncoded = formatHeaderInput(targetEncoded, 8, "targetEncoded")
 	elif len(targetEncoded) == 8 and isinstance(targetEncoded, str):
 		targetEncoded = str(targetEncoded)
+	elif len(targetEncoded) < 8 and isinstance(targetEncoded, int):
+		targetEncoded = formatHeaderInput(hex(targetEncoded), 8, "targetEncoded")
 
 	nonce         = formatHeaderInput(nonce, 32, "nonce", True)
 	num           = formatHeaderInput(num, 4, "num")
@@ -176,6 +178,9 @@ def DeconstructBlockHeader(BlockHeader: str):
 	nonce = int(f'0x{nonce}', 16)
 
 	num = BlockHeader[280:288]
+
+	if num == '': num = '0' # NOTE: tmp line to check if block mining is broken
+
 	num = int(f'0x{num}', 16)
 
 	a1, a2 = 288, 352
@@ -478,13 +483,27 @@ def ConstructBlock(header: str, transactions: list):
 
 	# add the hashed transaction (each transaction is hashed and appended) to the txList and alter the txHash from the input
 	#hexlified_transactions = [hex(int(binascii.hexlify(str(x).encode('utf-8')), 16)) for x in transactions]
-	print(transactions)
-	hexlified_transactions = [binascii.hexlify(x.encode('utf-8')).decode('utf-8') for x in transactions]
+
+	# NOTE: I need to revise the code outside of this if statement because the transaction struct changed
+	if isinstance(transactions[0], bytes):
+		hexlified_transactions = [x.decode('utf-8') for x in transactions]
+	else:
+		hexlified_transactions = [binascii.hexlify(x.encode('utf-8')).decode('utf-8') for x in transactions]
 	print(hexlified_transactions)
 	deconstructed_header["transactions"] = hexlified_transactions # each transaction is {"fromAddr": 0xasdfadfsa, ... "value": 100}, ..
 	deconstructed_header["txHash"]       = merkle_hash(transactions)
 
 	return deconstructed_header
+
+
+"""
+PACK BLOCK
+
+This is the structured block. It is direct concatenation of every field in the deconstructed block. The deconstructed block can be made with the function above.
+"""
+def PackBlock(deconstructed_block):
+	pass
+
 
 #a = rlp_encode([binascii.hexlify(x.encode('utf-8')) for x in ['fdsa', 'sf', 'fdsafdsasdf']])
 #print([binascii.unhexlify(x).decode('utf-8') for x in rlp_decode(a)])
@@ -529,8 +548,6 @@ pprint.pprint(c1.GetBiggestTransactions())
 
 #pprint.pprint(c2.ReadTransactionByID('fromAddr', '0x0x77dca013986bdfcee6033cac4a0b12b494171b61'))
 
-"""
-c = Cache("headers")
-headers = c.getAllHeaders(True)[0]
-print(headers['mix_hash'])
-"""
+#c = Cache("headers")
+#print(c.getAllHeaders(True)[0]['num'])
+

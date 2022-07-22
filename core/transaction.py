@@ -1,3 +1,5 @@
+# NOTE: This file is no longer maintained and will be deleted in the next release.
+
 """
 TODO LIST:
 

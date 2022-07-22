@@ -1,7 +1,7 @@
 # Core
 
 A Pythonic interface to the blockchain.
-ConfirmTransactionValidity
+
 ## How does Core work?
 
 Core combines three types of functions into an omniscient handler:

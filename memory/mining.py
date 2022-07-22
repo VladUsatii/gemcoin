@@ -25,6 +25,12 @@ if p not in sys.path:
 
 from gemcoin.prompt.color import Color
 from gemcoin.memory.block import *
+from gemcoin.core.sendShards import *
+
+from collections import OrderedDict
+
+# MAGIC CONSTANTS
+TX_MAGIC = 'c6c272c5d891'
 
 """
 BLOCK
@@ -96,7 +102,9 @@ class MinerClient:
 	"""
 	def getTxElectric_and_Size(self, txList: list) -> tuple:
 		# sort by highest work first
-		txList = sorted(txList, key=lambda d: d['workFee'], reverse=True) 
+		if isinstance(txList[0], bytes):
+			loadedTxList = [json.loads(binascii.unhexlify(x).decode('utf-8')) for x in txList]
+		loadedTxList = sorted(loadedTxList, key=lambda d: int(d['tx']['workFee']), reverse=True) 
 		size, totalElectricity = 0, 0
 		for x in txList:
 			size             += sys.getsizeof(x.to_json())
@@ -108,7 +116,9 @@ class MinerClient:
 	"""
 	def __getBestTx(self, txList: list) -> list:
 		# sort by highest work first
-		txList = sorted(txList, key=lambda d: d['workFee'], reverse=True) 
+		if isinstance(txList[0], bytes):
+			loadedTxList = [json.loads(binascii.unhexlify(x).decode('utf-8')) for x in txList]
+		loadedTxList = sorted(loadedTxList, key=lambda d: int(d['tx']['workFee']), reverse=True) 
 		size, totalElectricity = 0, 0
 		mlist = []
 		for x in txList:
@@ -141,10 +151,24 @@ class MinerClient:
 	Get a list of sets of all mempool transactions currently in cache.
 	"""
 	def getCurrentMempool(self):
+		# check if leveldb is open
 		MEMPOOL_LOCATION, db = self.getPaths('mempool')
 
-		all_transactions_available = list(db.RangeIter(include_value=True, reverse=False))
-		return [json.loads(bytes(x[1]).decode('utf-8')) for x in all_transactions_available]
+		all_txs_available = list(db.RangeIter(include_value=True, reverse=False))
+
+		just_txs = [x[1].decode('utf-8') for x in all_txs_available]
+		for i, x in enumerate(just_txs):
+			if TX_MAGIC == x[:12]:
+				just_txs[i] = json.loads(binascii.unhexlify(x[12:].encode('utf-8')))
+				assert ConfirmTransactionValidity(just_txs[i]), "Invalid transaction."
+			else:
+				del just_txs[i]
+
+		tmp_just_txs = [json.dumps(x) for x in just_txs]
+
+		# remove duplicate txs
+		non_repeated_txs = list(OrderedDict.fromkeys(tmp_just_txs))
+		return [binascii.hexlify(x.encode('utf-8')) for x in non_repeated_txs]
 
 	"""
 	Block tamper
@@ -156,6 +180,8 @@ class MinerClient:
 		HEADERS_LOCATION, db = self.getPaths("headers")
 
 		newestHeader = list(list(db.RangeIter(include_value=True, reverse=True))[0])[1].decode('utf-8')
+		#newestHeader = list(list(self.generic_cache.RangeIter(include_value=True, reverse=True))[0])[1].decode('utf-8')
+
 		return newestHeader
 
 	def getNewestDifficulty(self):
@@ -163,9 +189,10 @@ class MinerClient:
 		HEADERS_LOCATION, db = self.getPaths("headers")
 
 		newestHeader = list(list(db.RangeIter(include_value=True, reverse=True))[0])[1].decode('utf-8')
+		#newestHeader = list(list(self.generic_cache.RangeIter(include_value=True, reverse=True))[0])[1].decode('utf-8')
 		decoded_header = DeconstructBlockHeader(newestHeader)
 
-		print("CURRENT DIFFICULTY: ", decoded_header['targetEncoded'])
+		#print("CURRENT DIFFICULTY: ", decoded_header['targetEncoded'])
 
 		if int(decoded_header["nonce"]) % 2016 == 0:
 			#TODO: find a way to calculate the updated block difficulty
@@ -176,10 +203,12 @@ class MinerClient:
 	""" returns the block reward at the moment of the chain """
 	def getCurrentBlockReward(self):
 		# open cache
-		HEADERS_LOCATION, db = self.getPaths("headers")
+		_, db = self.getPaths("headers")
 
 		# iterate the chain
 		lengthOfChain = len(list(db.RangeIter(include_value=False, reverse=False)))
+		#lengthOfChain = len(list(self.generic_cache.RangeIter(include_value=False, reverse=False)))
+		del db
 
 		# check logic
 		#TODO: Change the 0 from 0 to self.currentCoinsInSupply
@@ -215,7 +244,8 @@ class MinerClient:
 			value=values,
 			privKey=None
 		)
-		mlist.insert(0, coinbase_tx) # the 0'th index is checked, error SentToSelf is ignored because BPEV allows custom alloc
+		packed_tx = binascii.hexlify(json.dumps(coinbase_tx).encode('utf-8'))
+		mlist.insert(0, packed_tx) # the 0'th index is checked, error SentToSelf is ignored because BPEV allows custom alloc
 
 		print(fromAddr[2:])
 
@@ -235,31 +265,37 @@ class MinerClient:
 			uncleRoot=fromAddr[2:]
 		)
 
+		#print(block_header)
+
 		DONE = False
+
+		# ( Funs[n, pt] | hash ) set must contain at least one instance of a certain target. Proof is on SO.
 		for n in range(2**64):
 			block_nonce = n
 
 			# split the block header into pieces
-			formattedNonce = formatHeaderInput(block_nonce, 4, "guessNonce")
+			formattedNonce = formatHeaderInput(block_nonce, 32, "guessNonce")
 			block_header = block_header[:216] + formattedNonce + block_header[280:]
 			hashed_block_header = dhash(block_header)
 
-			print(int(hashed_block_header, 16))
+			#print(int(hashed_block_header, 16))
 
 			if self.isProperDifficulty(hashed_block_header):
 				block = ConstructBlock(header=block_header, transactions=mlist)
+				print(block)
+
 				DONE = True
-				print(f"Successfully mined a block with valid nonce {formattedNonce} on the mainnet. Validating block. Will ask to send to peers.")
+				info(f"Successfully mined a block with valid nonce {formattedNonce} on the mainnet. Validating block. Will ask to send to peers.")
 
 				break
+			else:
+				refrmted_nonce = hex(int(formattedNonce, 16))[2:]
+				warning(f"Nonce {refrmted_nonce} > target. Incrementing nonce.")
 		if not DONE:
 			print("Exhausted all values without finding a hash. Please make sure to sync your chain before mining.")
 
 miner_addr = hex(0)
 mc = MinerClient()
 
-"""
 # TODO: Design the mempool
 mc.start_mining(miner_addr)
-"""
-print(mc.getCurrentMempool())
