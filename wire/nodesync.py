@@ -83,7 +83,7 @@ class RequestHandler(object):
 	# 2-3 (Handle, send, handle receiver data)
 	def handler(self, recvd):
 
-		x = recd[3][0] # Opcode of the handler
+		x = recvd[3][0] # Opcode of the handler
 
 		#############################
 		## RESPOND TO OPCODES HERE ##
