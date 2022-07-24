@@ -15,8 +15,13 @@ from gemcoin.memory.block import *
 from gemcoin.peers.serialization import *
 from gemcoin.peers.packerfuncs import *
 
-def formatNodeAddr(addr: hex):
+def formatNodeAddr(address: hex):
 	# check if address is a string
+	try:
+		addr = address.decode('utf-8')
+	except Exception as e:
+		addr = address
+
 	if not isinstance(addr, str):
 		panic("Invalid gemnode URL.")
 		pass
