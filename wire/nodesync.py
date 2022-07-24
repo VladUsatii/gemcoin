@@ -120,7 +120,7 @@ class RequestHandler(object):
 
 		# REQUESTING NEW HEADERS
 		if x == '0x01' or x == '1':
-			headers = self.cache.getAllHeaders(False)
+			headers_raw = self.cache.getAllHeaders(False)
 			headers = [x[1].decode('utf-8') for x in headers_raw]
 
 			"""
