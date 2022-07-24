@@ -25,7 +25,7 @@ def generate_ECDSA_keys():
 	pkb  = codecs.decode(pubKey, 'hex')
 	khas = keccak.new(digest_bits=256)
 	khas.update(pkb)
-	pubAddr = '0x' + khas.hexdigest()[-40:]
+	pubAddr = khas.hexdigest()[-40:]
 
 	print(f"This information is extremely important. You must use your private key to sign transactions and public address to verify your private signature:\nPrivate key: {privKey}\nPublic key: {pubKey}\nPublic address: 0x{pubAddr}")
 

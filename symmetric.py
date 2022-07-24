@@ -9,7 +9,7 @@ import random
 import uuid
 
 # gemcoin's Cryptography library will replace Cryptodome in our next update
-from Gemtography import AES
+from Gemtography import AES as GEMAES
 
 # NOTE: This AES exchange version is deprecated and no longer supported by gemcoin
 class AES_exchange(object):
@@ -99,13 +99,13 @@ class AES_CTR_EXCHANGE(object):
 
 	def encrypt(self, pt: bytes) -> bytes:
 		assert isinstance(pt, bytes) is True, "You must encode the plaintext into bytes before sending."
-		a, iv = AES.AES_CTR_MODE(self.key), os.urandom(16)
+		a, iv = GEMAES.AES_CTR_MODE(self.key), os.urandom(16)
 		b = a.encrypt_with_IV(pt, iv)
 		return binascii.hexlify(b)
 
 	def decrypt(self, ct: bytes) -> bytes:
 		assert isinstance(ct, bytes) is True, "You must encode the plaintext into bytes before sending."
 		ct = binascii.unhexlify(ct)
-		a = AES.AES_CTR_MODE(self.key)
+		a = GEMAES.AES_CTR_MODE(self.key)
 		pt = a.decrypt_with_IV(ct)
 		return pt

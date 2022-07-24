@@ -548,6 +548,3 @@ pprint.pprint(c1.GetBiggestTransactions())
 
 #pprint.pprint(c2.ReadTransactionByID('fromAddr', '0x0x77dca013986bdfcee6033cac4a0b12b494171b61'))
 
-#c = Cache("headers")
-#print(c.getAllHeaders(True)[0]['num'])
-

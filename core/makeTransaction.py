@@ -37,6 +37,9 @@ signed_tx = SignTransaction(raw, requestKeys()['priv_key'])
 
 pp.pprint(signed_tx)
 
+tx_key = CreateKey(signed_tx)
+print("Transaction Key: ", tx_key)
+
 # confirming transaction validity before sending the transaction.
 ## If true, you can send. If false, don't send and fix the signature.
 valid = ConfirmTransactionValidity(signed_tx)
@@ -44,9 +47,9 @@ print("TX VALIDITY: ", valid)
 
 # sending the signature
 # (1) pack the transaction
-print('asdf', signed_tx)
+print('Signed tx: ', signed_tx)
 packed_tx = PackTransaction(signed_tx)
-print("FDSFDS", signed_tx == UnpackTransaction(packed_tx))
+print("Assertion of packable transaction: ", signed_tx == UnpackTransaction(packed_tx))
 assert UnpackTransaction(packed_tx) == signed_tx, "Transaction was incorrectly packed."
 
 # (2) send
@@ -55,7 +58,7 @@ assert UnpackTransaction(packed_tx) == signed_tx, "Transaction was incorrectly p
 # adding signature to mempool
 m = Cache("mempool")
 # NOTE: You can use an 8-byte SHA hash for the index (0) to prevent index replacement.
-m.Create('1', packed_tx, m.DB)
+#m.Create(tx_key, packed_tx, m.DB)
 unpacked_mempool = [UnpackTransaction(x) for x in m.readMempool()]
 
 # remove duplicate signatures

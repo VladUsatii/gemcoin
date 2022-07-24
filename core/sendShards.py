@@ -22,6 +22,7 @@ from gemcoin.memory.block import *
 from gemcoin.memory.utils import *
 from gemcoin.prompt.color import *
 from gemcoin.prompt.errors import *
+from gemcoin.account.requestAccountDetails import *
 
 from pprint import pprint
 
@@ -144,3 +145,27 @@ def sendTransaction(sig_tx: dict, src_node, dest_node, dhkey):
 		self.src_node.send_to_node(dest_node, payload)
 	else:
 		warning("Enter y/n")
+
+"""
+CREATING THE KEY: VALUE MAPPING
+
+Keep in mind that:
+=> key = local_validator_id || '/' || dhash(json.dumps(signed_tx))
+=> value = Packed(tx)
+
+- local_validator_id = gemnode://pubaddr
+
+When the tx is added to the block, it is stripped of its key to save space. In the future, full nodes may store the key.
+
+"""
+def CreateKey(signed_tx: dict) -> bytes:
+	hashed_tx = dhash(json.dumps(signed_tx))
+	uri = "gemnode://" + requestKeys()['pub_addr'] + '/' + hashed_tx
+	return uri.encode('utf-8')
+
+def DeconstructKey(DB_key_encoded: bytes) -> tuple:
+	DB_key = DB_key_encoded.decode('utf-8')
+	assert DB_key[:10] == "gemnode://", "Incorrect protocol."
+	uri_data = DB_key[10:]
+	public_address, dhashed_tx = uri_data.split('/')
+	return (public_address, dhashed_tx)

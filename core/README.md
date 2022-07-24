@@ -75,18 +75,33 @@ ConfirmTransactionValidity(signed_tx)
 To pack your transaction before sending, run..
 
 ```python3
-PackTransaction(signed_tx) # outputs in bytes(hex)
+tx_value = PackTransaction(signed_tx) # outputs in bytes(hex)
 ```
 
-To send, use the following function after connecting to a peer on an omniscient network handler:
+The above function created your "value" (read up on key-value stores before continuing).
+
+To create your "key" for the database:
+
+```
+tx_key = CreateKey(signed_tx)
+```
+
+Add the transaction to your own mempool beore sending your mempool to other nodes:
+
+```
+cache = Cache('mempool')
+cache.Create(tx_key, tx_value, cache.DB)
+```
+
+To send your transaction directly to another node, add this to your opcode handler (use 0x05 - Transaction with 0x00 data). The following will run when a node is connected and verified:
 
 ```python3
 sendTransaction(signed_tx, src_node, dest_node, dhkey)
 ```
 
-That's all, folks.
+If you didn't do a direct message to another node, make sure that you run ```gemcoin/peers/main.py``` when you are ready.
 
-New types of transactions are coming as well. Watch out for those!
+It is that easy to be your own Gemcoin bank.
 
 ---
 

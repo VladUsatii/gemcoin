@@ -22,11 +22,20 @@ This is where requests are handled and sent back to their respective senders.
 
 Best use cases:
 - User A sends a signed transaction to User B, and User B runs tests and validates it. If it is a valid signature, User B adds the transaction to the mempool and repeats User A's duty.
-- User A sends a request for ALL blocks on the network. User B sends his chain to User A and User A verifies that each block header is valid. If the block is valid, User A adds the block to his chain.
+- User A sends a request for ALL blocks on the network. User B sends his chain to User A and User A verifies that each block header is valid. If the block is valid, User A adds the block to his chain. If not, the node is considered untrustworthy and is disconnected.
 - User A sends a request that was programmed by User A. User B, if he has the same request built-in, will respond with the correct data. User A checks that the request was valid, and does some callback operation.
 - User A is requesting the newest headers. User B checks User A's latest block header index, and responds with index + 1 --> User B's latest block header. User A verifies each one before adding to his chain.
 
 """
+
+# attempts to encode utf-8, unless already encoded
+def tryEncode(data):
+	try:
+		d = data.encode('utf-8')
+		return d
+	except Exception:
+		return data
+	
 
 class RequestBlocks(object):
 	def __init__(self, src_node, dest_node, dhkey):
@@ -90,7 +99,7 @@ class RequestHandler(object):
 			['0x00', '20', '0x0..', ['0x04', '0x00', 'index_of_packet', 'header_body']]
 			"""
 
-			# if the amount of all headers on destination node > genesis block (or 1)
+			# if you have more than just the genesis header, you send your data
 			if len(headers) > 1:
 				# send each header
 				for nested_index, header in enumerate(headers):
@@ -101,9 +110,9 @@ class RequestHandler(object):
 						print("FULL PAYLOAD SENDING:", payload)
 
 						self.src_node.send_to_node(self.dest_node, payload)
+						time.sleep(3)
 
-					time.sleep(3) # 3 second wait (because some computers may take a long time to verify headers)
-
+			# if you only have the genesis header, then exit the node connection
 			elif len(headers) <= 1:
 				payload = Bye(0x01, self.dhkey)
 				self.src_node.send_to_node(self.dest_node, payload)
@@ -134,7 +143,7 @@ class RequestHandler(object):
 		if x == '0x04' or x == '4' or x == 4:
 			print("RECEIVED: ", recvd[3])
 
-			if type(recvd[3]) is list and len(recvd[3][1:]) == 3:
+			if isinstance(recvd[3], list) and len(recvd[3][1:]) == 3:
 				try:
 					subop, index, data = recvd[3][1:]
 
@@ -143,7 +152,7 @@ class RequestHandler(object):
 						# this is where requester node checks the chain for fraud
 						fraud = checkForFraud(index, data, self.cache.getAllHeaders(False)[0])
 						if fraud is True:
-							self.cache.Create(index.encode('utf-8'), data.encode('utf-8'), self.cache.DB)
+							self.cache.Create(tryEncode(index), tryEncode(data), self.cache.DB)
 							info(f"Downloaded header            {Color.GREEN}index{Color.END}={index}")
 						elif fraud is False:
 							warning("The proposed block is not valid for this chain. This node has been Byed(0x01) for convenience.")
@@ -160,7 +169,7 @@ class RequestHandler(object):
 
 		# TRANSACTION HANDLER
 		if x == '0x05' or x == '5':
-			raw_tx = json.loads(recvd[3][1])
+			raw_tx = UnpackTransaction(recvd[3][1])
 
 			info("Validating transaction from inbound node. If confirmed, will send to outbound nodes.")
 
@@ -217,12 +226,12 @@ class RequestHandler(object):
 		# check if raw tx first
 		check_tx_validity = ConfirmTransactionValidity(raw_tx)
 
-		# TODO: Check that the timestamp of the transaction > (latest_transaction - 3 hours)
 		if check_tx_validity is True:
 			# add to the mempool
 			mem = Cache("mempool")
 			try:
-				mem.Create(len(mem.readFullDB)+1, raw_tx, mem.DB)
+				tx_key = CreateKey(raw_tx)
+				mem.Create(tx_key, raw_tx, mem.DB)
 				info("Verified and added a transaction to the mempool.")
 			except Exception as e:
 				panic("Hit a snag: {e}")
