@@ -66,11 +66,22 @@ To make a private key and save it to the chain:
 >>> ./add_key_NEW.py generate key
 ```
 
-## Versions
+Now that you've downloaded the genesis and cache and made a key, sync with the server:
+
+```
+>>> cd peers
+>>> ./main.py # this will take hours
+```
+
+## Read the Docs
+
+Read the Docs for sending data here: [Sending Data](https://github.com/VladUsatii/p2pspec/blob/main/SENDING_DATA.md)
+
+### Versions
 
 [GIP 1](https://github.com/VladUsatii/gemcoin/docs/GIP1.md)
 
-## TODO
+### TODO
 
 - Debug and audit my code
 - Add support for subprotocols (maybe an on-chain downloadable library)

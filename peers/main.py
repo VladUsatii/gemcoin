@@ -342,5 +342,7 @@ def main():
 	src_node.stop()
 	panic("Closing gemcoin.")
 
+
 if __name__ == "__main__":
 	main()
+

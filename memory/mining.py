@@ -26,6 +26,8 @@ if p not in sys.path:
 from gemcoin.prompt.color import Color
 from gemcoin.memory.block import *
 from gemcoin.core.sendShards import *
+from gemcoin.memory.nodeargs import *
+#from gemcoin.peers.sendingData import *
 
 from collections import OrderedDict
 
@@ -282,10 +284,25 @@ class MinerClient:
 
 			if self.isProperDifficulty(hashed_block_header):
 				block = ConstructBlock(header=block_header, transactions=mlist)
-				print(block)
+				info(f"Mined block:\n\n{block}\n\n")
 
 				DONE = True
 				info(f"Successfully mined a block with valid nonce {formattedNonce} on the mainnet. Validating block. Will ask to send to peers.")
+
+				packed_block = PackBlock(block)
+				info(f"Packed block:\n\n{packed_block}\n\n")
+
+				# NOTE: Currently doesn't work
+				#proposed_payload = Hello(20, f"gemnode://{fromAddr}", ['0x01', str(int(DeconstructBlockHeader(self.getNewestBlock())['num']) + 1), packed_block])
+				#info(f"Packed payload:\n\n{proposed_payload}\n\n")
+				#info("Sending the proposed block to a fullnode. This could take some time.")
+
+				# NOTE: UPDATE: Block will be saved to a 'mined_block' file instead of being sent to a peer right away.
+				with open(f'saved_block_{hashed_block_header}', 'wb') as f:
+					f.write(packed_block)
+					success(f"Saved a proposed block to gemcoin/memory/saved_block_{hashed_block_header}. You must send this block to peers manually with peers/sendingData.py. Do this as fast as possible to claim your gems.")
+
+				time.sleep(3)
 
 				break
 			else:

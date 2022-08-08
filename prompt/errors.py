@@ -45,6 +45,8 @@ def warning(message):
 def panic(message):
 	print(f"{Color.RED}PANIC:{Color.END} {message}")
 
+def attention(message):
+	print(f"{Color.YELLOW}ATTENTION:{Color.END} {message}")
 
 def printConstants(a):
 	t1 = timeNow()

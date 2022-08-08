@@ -49,6 +49,7 @@ print("TX VALIDITY: ", valid)
 # (1) pack the transaction
 print('Signed tx: ', signed_tx)
 packed_tx = PackTransaction(signed_tx)
+print('Packed tx: ', packed_tx)
 print("Assertion of packable transaction: ", signed_tx == UnpackTransaction(packed_tx))
 assert UnpackTransaction(packed_tx) == signed_tx, "Transaction was incorrectly packed."
 

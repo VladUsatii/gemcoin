@@ -270,6 +270,8 @@ def ConstructTransaction(version, workFee, timestamp, fromAddr, toAddr, value, p
 """
 PACK SIG_TX
 
+This is a perfect identity of the transaction. Works with wire protocol.
+
 HEXLIFY( MAGIC || HEXLIFY( JSON_PACKED(SIG_TX) ) )
 
 """
@@ -475,7 +477,7 @@ Inputs are the "constructed" block header and the list of transactions including
 
 takes in the block header, deconstructs it and puts it in JSON format, and appends transaction list to the txList. Gives the tx list a txroot hash.
 
-TRANSACTIONS MUST BE JSON DUMPED INTO A LIST ALREADY!
+TRANSACTIONS MUST BE JSON DUMPED INTO A LIST ALREADY! Use PackTransaction(tx) for tx in txs to accomplish this.
 """
 def ConstructBlock(header: str, transactions: list):
 	# deconstruct the header with the new nonce
@@ -499,12 +501,46 @@ def ConstructBlock(header: str, transactions: list):
 """
 PACK BLOCK
 
-This is the structured block. It is direct concatenation of every field in the deconstructed block. The deconstructed block can be made with the function above.
+This is the structured block. It is direct concatenation of every field in the deconstructed block. The deconstructed block can be made with the function below.
+
+There is a checksum to keep message integrity between trusted nodes. By now, nodes have verified each other. There shouldn't be existential forgery past their VERACK.
 """
 def PackBlock(deconstructed_block):
-	pass
+	assert isinstance(deconstructed_block, dict), "Incorrect block format."
 
+	packed_block = json.dumps(deconstructed_block)
+	hexlified_block = binascii.hexlify(packed_block.encode('utf-8'))
 
+	md5_hash = hashlib.new('md5')
+	md5_hash.update(hexlified_block)
+	checksum = md5_hash.hexdigest()[12:] # last 10 bytes of hash (20 bytes, technically)
+
+	instance = hexlified_block.decode('utf-8') + checksum
+	return instance.encode('utf-8')
+
+def UnpackBlock(constructed_block):
+	assert isinstance(constructed_block, bytes), "Incorrect block pack format."
+	decoded_block = constructed_block.decode('utf-8')
+
+	checksum = decoded_block[-20:]
+	block    = decoded_block[:-20]
+
+	md5_hash_check = hashlib.new('md5')
+	md5_hash_check.update(block.encode('utf-8'))
+
+	print(md5_hash_check.hexdigest(), checksum)
+
+	assert md5_hash_check.hexdigest()[12:] == checksum, "An adversary altered the message from the node."
+
+	unhexlified_block = binascii.unhexlify(block.encode('utf-8'))
+	return json.loads(unhexlified_block)
+
+# USAGE:
+#a = {'txs': ['asdfdsfdsafdas', 'fdsfdsafdsafdsafdsafdsafdsafdsagfdsa']}
+#print(PackBlock(a))
+#print(UnpackBlock(PackBlock(a)))
+
+# USAGE:
 #a = rlp_encode([binascii.hexlify(x.encode('utf-8')) for x in ['fdsa', 'sf', 'fdsafdsasdf']])
 #print([binascii.unhexlify(x).decode('utf-8') for x in rlp_decode(a)])
 

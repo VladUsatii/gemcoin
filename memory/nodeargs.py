@@ -59,7 +59,7 @@ def Hello(version, address, capabilities, secret_key=None):
 
 	version = hex(20)
 
-	if "gemcoin://" not in address:
+	if "gemnode://" not in address:
 		address = formatNodeAddr(address)
 
 	return pack(['0x00', version, address, capabilities], secret_key)
