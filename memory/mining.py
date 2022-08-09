@@ -253,21 +253,22 @@ class MinerClient:
 
 		block_nonce = 0
 		diff = int("0000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", 16) // int(self.getNewestDifficulty())
+
+		# NOTE: Untested:  constants that have to be saved for the block in the cache
+		ts = int(datetime.utcnow().timestamp())
+
 		# construct the block header for mining
 		block_header = ConstructBlockHeader(
 			version=int(Common.Genesis().version),
-			#previous_hash=str(dhash(self.getNewestBlock())),
 			previous_hash=str(Cache("headers").getAllHeaders(True)[0]['mix_hash'])[2:],
 			mix_hash=str(merkle_hash(mlist)),
-			timestamp=int(datetime.utcnow().timestamp()),
+			timestamp=ts,
 			targetEncoded=hex(self.getNewestDifficulty()),
 			nonce=0,
 			num=int(DeconstructBlockHeader(self.getNewestBlock())['num']) + 1,
 			txHash=dhash(coinbase_tx),
 			uncleRoot=fromAddr[2:]
 		)
-
-		#print(block_header)
 
 		DONE = False
 
@@ -280,9 +281,8 @@ class MinerClient:
 			block_header = block_header[:216] + formattedNonce + block_header[280:]
 			hashed_block_header = dhash(block_header)
 
-			#print(int(hashed_block_header, 16))
-
-			if self.isProperDifficulty(hashed_block_header):
+			#if self.isProperDifficulty(hashed_block_header):
+			if 1:
 				block = ConstructBlock(header=block_header, transactions=mlist)
 				info(f"Mined block:\n\n{block}\n\n")
 
@@ -298,9 +298,9 @@ class MinerClient:
 				#info("Sending the proposed block to a fullnode. This could take some time.")
 
 				# NOTE: UPDATE: Block will be saved to a 'mined_block' file instead of being sent to a peer right away.
-				with open(f'saved_block_{hashed_block_header}', 'wb') as f:
+				with open(f'saved_block_{ts}', 'wb') as f:
 					f.write(packed_block)
-					success(f"Saved a proposed block to gemcoin/memory/saved_block_{hashed_block_header}. You must send this block to peers manually with peers/sendingData.py. Do this as fast as possible to claim your gems.")
+					success(f"Saved a proposed block to gemcoin/memory/saved_block_{ts}. You must send this block to peers manually with peers/sendingData.py. Do this as fast as possible to claim your gems.")
 
 				time.sleep(3)
 

@@ -21,6 +21,8 @@ import dbm
 import subprocess
 import io
 
+from pathlib import Path
+
 # import functions from parent
 p = os.path.abspath('../..')
 if p not in sys.path:
@@ -86,11 +88,30 @@ if __name__ == "__main__":
 	if selection == '1':
 		ask = input("Enter raw packed transaction here (before Hello(0x..)): ")
 	elif selection == '2':
-		ask = input("Enter raw packed block here (before Hello(0x..)): ")
+		info("Retrieving the newest timestamped block from memory...")
+
+		# looks for the newest proposed blocks by user saved locally
+		mem_dir = os.listdir('../memory')
+		blocks = []
+		for x in mem_dir:
+			if 'saved_block_' in x:
+				blocks.append(int(x[-10:]))
+		blocks.sort()
+		newest_ts = blocks[-1]
+
+		file_newest_ts = f'saved_block_{newest_ts}'
+		info("Found the newest block.")
+
+		with open(f'../memory/{file_newest_ts}') as f:
+			ask = f.read()
+
 	elif selection == '3':
 		ask = input("Enter raw packed subprotocol transaction here (before Hello(0x..)): ")
 	else:
 		panic("Invalid choice.")
 		sys.exit(0)
+
+	# force encoding to bytes
 	data = forceEncoding(ask)
+	print("This is what I'm sending:", data)
 	PeerSendLayer(data)

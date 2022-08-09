@@ -80,7 +80,11 @@ Returns True if valid, False with Error if invalid.
 def ConfirmTransactionValidity(signed_tx: dict) -> bool:
 	# extract prerequisites
 	#pubAddr = signed_tx['tx']['pubAddr']
-	pubAddr = signed_tx['tx']['fromAddr'].replace('0x', '')
+	try:
+		pubAddr = signed_tx['tx']['fromAddr'].replace('0x', '')
+	except Exception as e:
+		panic("Hit a snag: {e}")
+		break
 	r = int(signed_tx['tx']['r'])
 	s = int(signed_tx['tx']['s'])
 
