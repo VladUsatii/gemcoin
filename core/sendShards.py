@@ -83,7 +83,7 @@ def ConfirmTransactionValidity(signed_tx: dict) -> bool:
 	try:
 		pubAddr = signed_tx['tx']['fromAddr'].replace('0x', '')
 	except Exception as e:
-		panic("Hit a snag: {e}")
+		panic(f"Hit a snag: {e}")
 		return False
 	r = int(signed_tx['tx']['r'])
 	s = int(signed_tx['tx']['s'])
