@@ -130,7 +130,7 @@ class RequestHandler(object):
 
 			latest_index = int(recvd[3][1])
 
-			if len(latest_index) < len(headers):
+			if latest_index < len(headers):
 				sendable_headers = headers[latest_index:] # (!!!) might cause off-by-one error
 			else:
 				warning("This node does not have enough headers to update the peer. Disconnecting..")
