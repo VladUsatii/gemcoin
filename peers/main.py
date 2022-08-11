@@ -187,6 +187,9 @@ class srcNode(Node):
 				'0x00': rqb.handler(message),
 				'0': rqb.handler(message),
 
+				'0x01': rqb.handler(message),
+				'1': rqb.handler(message),
+
 				'0x04': rqb.handler(message),
 				'4': rqb.handler(message),
 
@@ -198,14 +201,16 @@ class srcNode(Node):
 			}
 
 			try:
-				connect_reason[message[3][1]]
+				# NOTE: I think I was using the wrong index
+				#connect_reason[message[3][1]]
+				connect_reason[message[3][0]]
 			except Exception as e:
 				panic(f"Hit a snag (Error: {e}).")
 				print(traceback.format_exc())
 				warning("Stopping header sync.")
 
 	def node_disconnect_with_outbound_node(self, node):
-		print("node wants to disconnect with oher outbound node: (" + self.id[0] + "): " + node.id[0])
+		print("node wants to disconnect with other outbound node: (" + self.id[0] + "): " + node.id[0])
 
 	# TERMINATES program midway, halts all threads. All devs should be cautious.        
 	def node_request_to_stop(self):

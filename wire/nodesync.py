@@ -129,11 +129,17 @@ class RequestHandler(object):
 			"""
 
 			latest_index = int(recvd[3][1])
-			sendable_headers = headers[latest_index:] # (!!!) might cause off-by-one error
+
+			if len(latest_index) < len(headers):
+				sendable_headers = headers[latest_index:] # (!!!) might cause off-by-one error
+			else:
+				warning("This node does not have enough headers to update the peer. Disconnecting..")
+				payload = Bye(0x01, self.dhkey)
+				self.src_node.send_to_node(self.dest_node, payload)
 
 			for sender_index, header in enumerate(sendable_headers):
 				print("SENDING TO NODE: ", header)
-				payload = Hello(self.src_node.VERSION, self.src_node.id[3], ['0x04', str(x), str(latest_index+sender_index), header], self.dhkey)
+				payload = Hello(self.src_node.VERSION, self.src_node.id[3], ['0x04', str(x), str(latest_index+sender_index+1), header], self.dhkey)
 				self.src_node.send_to_node(self.dest_node, payload)
 				time.sleep(2) # 2 second lag remover
 
