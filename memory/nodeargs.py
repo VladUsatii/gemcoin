@@ -23,6 +23,7 @@ def formatNodeAddr(address: hex):
 		addr = address
 
 	if not isinstance(addr, str):
+		print("This is the instance of type addr: ", type(addr))
 		panic("Invalid gemnode URL.")
 		pass
 
@@ -31,6 +32,7 @@ def formatNodeAddr(address: hex):
 
 	# check if valid length
 	if len(str(addr)) > 64:
+		print("This is the length of addr: ", len(str(addr)))
 		panic("Invalid gemnode URL.")
 		pass
 
