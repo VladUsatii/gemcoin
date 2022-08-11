@@ -154,7 +154,7 @@ class RequestHandler(object):
 					subop, index, data = recvd[3][1:]
 
 					# how a sender handles the data he requested
-					if subop == '0x00' or subop == '0' or subop == 0:
+					if subop == '0x00' or subop == '0' or subop == 0 or subop == '0x01' or subop == '1' or subop == 1:
 						# this is where requester node checks the chain for fraud
 						fraud = checkForFraud(index, data, self.cache.getAllHeaders(False)[0])
 						if fraud is True:
