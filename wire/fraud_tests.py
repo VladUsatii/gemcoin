@@ -35,8 +35,16 @@ def checkForFraud(index, NEW, OLD):
 	# convert to strings first
 	if isinstance(NEW, bytes):
 		proposed_header = checkUTF8Encoding(NEW)
+	elif isinstance(NEW, str):
+		proposed_header = NEW
+	else:
+		panic(f"Wrong type. Is of type {type(NEW)}")
 	if isinstance(OLD, bytes):
 		latest_saved_header = checkUTF8Encoding(OLD)
+	elif isinstance(OLD, str):
+		latest_saved_header = OLD
+	else:
+		panic(f"Wrong type. Is of type {type(OLD)}")
 
 	proposed = DeconstructBlockHeader(proposed_header)
 	latest   = DeconstructBlockHeader(latest_saved_header)
