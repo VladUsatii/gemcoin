@@ -156,7 +156,7 @@ class RequestHandler(object):
 					# how a sender handles the data he requested
 					if subop == '0x00' or subop == '0' or subop == 0 or subop == '0x01' or subop == '1' or subop == 1:
 						# this is where requester node checks the chain for fraud
-						fraud = checkForFraud(index, data, self.cache.getAllHeaders(False)[0])
+						fraud = checkForFraud(index, data, self.cache.getAllHeaders(False)[0][1].decode('utf-8'))
 						if fraud is True:
 							self.cache.Create(tryEncode(index), tryEncode(data), self.cache.DB)
 							info(f"Downloaded header            {Color.GREEN}index{Color.END}={index}")
